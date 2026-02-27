@@ -1,4 +1,5 @@
 #include "CountdownEngine.h"
+#include "ConfigManager.h"
 
 CountdownEngine::CountdownEngine(QObject *parent) : QObject(parent) {
     m_timer = new QTimer(this);

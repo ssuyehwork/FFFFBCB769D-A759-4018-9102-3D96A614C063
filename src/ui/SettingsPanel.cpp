@@ -23,6 +23,11 @@ SettingsPanel::SettingsPanel(QWidget *parent) : QDialog(parent) {
     m_opacitySlider->setValue(config.overlayOpacity);
     formLayout->addRow("遮罩不透明度：", m_opacitySlider);
 
+    m_lockDuration = new QSpinBox();
+    m_lockDuration->setRange(1, 60);
+    m_lockDuration->setValue(config.lockDurationMinutes);
+    formLayout->addRow("锁屏持续时长 (分)：", m_lockDuration);
+
     QHBoxLayout *bgLayout = new QHBoxLayout();
     m_bgPathEdit = new QLineEdit(config.backgroundImagePath);
     m_bgPathEdit->setReadOnly(true);
@@ -95,6 +100,7 @@ void SettingsPanel::clearBackgroundImage() {
 void SettingsPanel::saveAndClose() {
     AppConfig config = ConfigManager::instance().getConfig();
     config.overlayOpacity = m_opacitySlider->value();
+    config.lockDurationMinutes = m_lockDuration->value();
     config.backgroundImagePath = m_bgPathEdit->text();
     config.showLockIcon = m_showLockIcon->isChecked();
     config.customMessage = m_customMessage->text();
