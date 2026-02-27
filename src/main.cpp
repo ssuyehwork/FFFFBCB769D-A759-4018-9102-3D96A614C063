@@ -134,12 +134,17 @@ private slots:
     }
 
     void handleUnlock() {
+        // 1. 立即解除系统级阻塞和置顶
+        SystemHookManager::instance().setBlocking(false);
         TopMostGuard::instance().stopGuard();
-        SystemHookManager::instance().setBlocking(false); // 停止拦截 Win 键等
         TopMostGuard::instance().clearWindows();
         PowerManager::allowSleepAndScreenOff();
 
-        for (auto w : m_lockWindows) w->deleteLater();
+        // 2. 物理隐藏所有遮罩窗口，防止 deleteLater 延迟
+        for (auto w : m_lockWindows) {
+            w->hide();
+            w->deleteLater();
+        }
         m_lockWindows.clear();
 
         CountdownEngine::instance().stop();

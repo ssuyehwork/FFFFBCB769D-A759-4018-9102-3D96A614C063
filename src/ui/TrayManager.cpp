@@ -33,7 +33,11 @@ void TrayManager::setVisible(bool visible) {
 }
 
 void TrayManager::updateRemainingTime(int seconds) {
-    int mins = seconds / 60;
-    int secs = seconds % 60;
-    m_timeAction->setText(QString("剩余时间：%1:%2").arg(mins, 2, 10, QChar('0')).arg(secs, 2, 10, QChar('0')));
+    if (seconds <= 0) {
+        m_timeAction->setText("状态：已锁定");
+    } else {
+        int mins = seconds / 60;
+        int secs = seconds % 60;
+        m_timeAction->setText(QString("剩余时间：%1:%2").arg(mins, 2, 10, QChar('0')).arg(secs, 2, 10, QChar('0')));
+    }
 }

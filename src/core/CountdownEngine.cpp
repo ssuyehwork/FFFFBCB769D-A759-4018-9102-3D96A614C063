@@ -21,6 +21,7 @@ void CountdownEngine::start(int minutes) {
 void CountdownEngine::forceLock() {
     m_timer->stop();
     m_remainingSeconds = 0;
+    // 关键：先改变状态，确保 main.cpp 处理 lockActivated 信号时 state() 为 Locked
     setState(Locked);
     emit lockActivated();
 }
@@ -59,6 +60,7 @@ void CountdownEngine::onTick() {
             if (m_remainingSeconds == 0) {
                 m_timer->stop();
                 m_remainingSeconds = 0;
+                // 关键：先 setState 确保 main.cpp 的 activateLock 能正确执行钩子阻塞
                 setState(Locked);
                 emit lockActivated();
             }
