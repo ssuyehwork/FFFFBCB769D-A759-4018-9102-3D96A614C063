@@ -25,6 +25,7 @@ public slots:
     void setLockMode(bool locked);
     void setClockPaused(bool paused);
     void updateLockout();
+    void focusInput();
 
 private slots:
     void attemptUnlock();

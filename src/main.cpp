@@ -27,11 +27,14 @@ public:
         if (!RegisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 1, MOD_CONTROL | MOD_ALT, 'L')) {
             // 热键注册失败
         }
+        // 临时新增：Ctrl+Shift+F10 强制退出热键 (ID: 2)
+        RegisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 2, MOD_CONTROL | MOD_SHIFT, VK_F10);
+
         qApp->installNativeEventFilter(this);
 #endif
         m_tray = new TrayManager(this);
         connect(m_tray, &TrayManager::exitRequested, this, &AppController::handleExit);
-        connect(m_tray, &TrayManager::unlockRequested, this, &AppController::handleImmediateLock); // 托盘紧急解锁改为直接触发(如果未锁)或由遮罩处理
+        connect(m_tray, &TrayManager::unlockRequested, this, &AppController::handleTrayUnlock);
 
         connect(&CountdownEngine::instance(), &CountdownEngine::tickSecond, m_tray, &TrayManager::updateRemainingTime);
         connect(&CountdownEngine::instance(), &CountdownEngine::tickSecond, this, &AppController::handleTick);
@@ -56,9 +59,15 @@ public:
 #ifdef Q_OS_WIN
         if (eventType == "windows_generic_MSG") {
             MSG *msg = static_cast<MSG *>(message);
-            if (msg->message == WM_HOTKEY && msg->wParam == 1) {
-                handleImmediateLock();
-                return true;
+            if (msg->message == WM_HOTKEY) {
+                if (msg->wParam == 1) {
+                    handleImmediateLock();
+                    return true;
+                } else if (msg->wParam == 2) {
+                    // 临时紧急退出
+                    qApp->quit();
+                    return true;
+                }
             }
         }
 #endif
@@ -181,6 +190,7 @@ private slots:
 #ifdef Q_OS_WIN
         if (m_hotkeyWindow) {
             UnregisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 1);
+            UnregisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 2);
         }
 #endif
         if (!m_lockWindows.isEmpty()) {
@@ -200,6 +210,23 @@ private slots:
         SystemHookManager::instance().setBlocking(true);
         // 强制引擎进入锁定状态
         CountdownEngine::instance().forceLock();
+    }
+
+    void handleTrayUnlock() {
+        if (m_lockWindows.isEmpty()) {
+            // 未锁定时点击紧急解锁 -> 直接进入锁定
+            handleImmediateLock();
+        } else {
+            // 已锁定时点击紧急解锁 -> 确保主屏输入框获得焦点
+            for (auto w : m_lockWindows) {
+                if (w->property("isMainScreen").toBool()) {
+                    w->activateWindow();
+                    w->raise();
+                    QMetaObject::invokeMethod(w, "focusInput", Qt::QueuedConnection);
+                    break;
+                }
+            }
+        }
     }
 
 private:

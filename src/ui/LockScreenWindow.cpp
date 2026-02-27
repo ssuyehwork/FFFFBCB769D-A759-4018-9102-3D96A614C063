@@ -162,6 +162,12 @@ void LockScreenWindow::updateLockout() {
     }
 }
 
+void LockScreenWindow::focusInput() {
+    if (m_passwordEdit) {
+        m_passwordEdit->setFocus();
+    }
+}
+
 void LockScreenWindow::setClockPaused(bool paused) {
     Q_UNUSED(paused);
 }
