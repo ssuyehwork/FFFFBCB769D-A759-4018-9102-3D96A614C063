@@ -36,6 +36,7 @@ public:
         connect(&CountdownEngine::instance(), &CountdownEngine::warningPhaseStarted, this, &AppController::handleWarning);
         connect(&CountdownEngine::instance(), &CountdownEngine::warningTick, this, &AppController::handleWarningTick);
         connect(&CountdownEngine::instance(), &CountdownEngine::lockActivated, this, &AppController::activateLock);
+        connect(&CountdownEngine::instance(), &CountdownEngine::unlockSucceeded, this, &AppController::handleUnlock);
         connect(&CountdownEngine::instance(), &CountdownEngine::finished, this, &AppController::handleUnlock);
         
         // 移除 Esc 触发对话框的全局连接，改为遮罩内部处理
