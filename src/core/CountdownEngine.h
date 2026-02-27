@@ -18,6 +18,7 @@ public:
     static CountdownEngine& instance();
 
     void start(int minutes);
+    void forceLock();
     void stop();
     void pause();
     void resume();

@@ -1,6 +1,10 @@
 #include <QApplication>
 #include <QMessageBox>
 #include <QScreen>
+#include <QAbstractNativeEventFilter>
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
 #include "core/ConfigManager.h"
 #include "core/CountdownEngine.h"
 #include "core/SessionLogger.h"
@@ -12,10 +16,16 @@
 #include "ui/UnlockDialog.h"
 #include "ui/TrayManager.h"
 
-class AppController : public QObject {
+class AppController : public QObject, public QAbstractNativeEventFilter {
     Q_OBJECT
 public:
     AppController() {
+#ifdef Q_OS_WIN
+        if (!RegisterHotKey(NULL, 1, MOD_CONTROL | MOD_ALT, 'L')) {
+            // 热键注册失败（可能被占用）
+        }
+        qApp->installNativeEventFilter(this);
+#endif
         m_tray = new TrayManager(this);
         connect(m_tray, &TrayManager::exitRequested, this, &AppController::handleExit);
         connect(m_tray, &TrayManager::unlockRequested, this, &AppController::showUnlockDialog);
@@ -31,6 +41,20 @@ public:
     void start() {
         m_tray->setVisible(true);
         showSetup();
+    }
+
+    bool nativeEventFilter(const QByteArray &eventType, void *message, qintptr *result) override {
+        Q_UNUSED(result);
+#ifdef Q_OS_WIN
+        if (eventType == "windows_generic_MSG") {
+            MSG *msg = static_cast<MSG *>(message);
+            if (msg->message == WM_HOTKEY && msg->wParam == 1) {
+                handleImmediateLock();
+                return true;
+            }
+        }
+#endif
+        return false;
     }
 
 private slots:
@@ -51,7 +75,14 @@ private slots:
             for (QScreen* screen : QGuiApplication::screens()) {
                 bool isMain = (screen == QGuiApplication::primaryScreen());
                 LockScreenWindow* w = new LockScreenWindow(screen->geometry(), isMain);
+
+                // 以不激活焦点的方式显示，避免打断用户当前操作
+#ifdef Q_OS_WIN
+                HWND hwnd = reinterpret_cast<HWND>(w->winId());
+                ShowWindow(hwnd, SW_SHOWNOACTIVATE);
+#else
                 w->show();
+#endif
                 m_lockWindows.append(w);
                 TopMostGuard::instance().addWindow(w);
             }
@@ -126,11 +157,24 @@ private slots:
     }
 
     void handleExit() {
+#ifdef Q_OS_WIN
+        UnregisterHotKey(NULL, 1);
+#endif
         if (!m_lockWindows.isEmpty()) {
             showUnlockDialog();
         } else {
             qApp->quit();
         }
+    }
+
+    void handleImmediateLock() {
+        if (!m_lockWindows.isEmpty()) return; // 已经在锁屏中
+
+        m_sessionStartTime = QDateTime::currentDateTime();
+        m_touchCount = 0;
+
+        // 强制引擎进入锁定状态
+        CountdownEngine::instance().forceLock();
     }
 
 private:

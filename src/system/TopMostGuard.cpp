@@ -50,8 +50,9 @@ void TopMostGuard::onGuardTick() {
             // 确保窗口在最顶层
             SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
             
-            // 如果开启了抢焦点逻辑，且不是前台窗口，且是主屏窗口，则抢回焦点
-            if (w->property("isMainScreen").toBool()) {
+            // 仅在正式锁定状态下执行抢焦点逻辑，预警期不干扰用户操作
+            bool isLocked = w->property("isLocked").toBool();
+            if (isLocked && w->property("isMainScreen").toBool()) {
                 if (GetForegroundWindow() != hwnd) {
                     SetForegroundWindow(hwnd);
                 }

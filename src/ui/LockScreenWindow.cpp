@@ -46,6 +46,7 @@ LockScreenWindow::LockScreenWindow(const QRect& geometry, bool isMain, QWidget *
 
 void LockScreenWindow::setLockMode(bool locked) {
     m_locked = locked;
+    setProperty("isLocked", locked);
     if (m_locked) {
         setAttribute(Qt::WA_TransparentForMouseEvents, false);
         applyAcrylic();

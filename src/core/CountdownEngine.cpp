@@ -17,6 +17,13 @@ void CountdownEngine::start(int minutes) {
     emit tickSecond(m_remainingSeconds);
 }
 
+void CountdownEngine::forceLock() {
+    m_remainingSeconds = 0;
+    setState(Locked);
+    m_timer->stop();
+    emit lockActivated();
+}
+
 void CountdownEngine::stop() {
     m_timer->stop();
     setState(Idle);
