@@ -25,18 +25,22 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         bool block = false;
         // 拦截 Win 键
         if (p->vkCode == VK_LWIN || p->vkCode == VK_RWIN) block = true;
-        // 拦截 Ctrl+Alt+Delete (虽然LL钩子拦不住，但我们可以拦截其他相关的键序列)
-        // 拦截 Alt+Tab, Alt+F4, Alt+Esc
+
+        // 拦截 Alt 相关组合键 (Alt+Tab, Alt+F4, Alt+Esc, Alt+Space)
         if (GetAsyncKeyState(VK_MENU) & 0x8000) {
-            if (p->vkCode == VK_TAB || p->vkCode == VK_F4 || p->vkCode == VK_ESCAPE) block = true;
+            if (p->vkCode == VK_TAB || p->vkCode == VK_F4 || p->vkCode == VK_ESCAPE || p->vkCode == VK_SPACE) block = true;
         }
-        // 拦截 Ctrl+Esc 和 Ctrl+Shift+Esc
+
+        // 拦截 Ctrl 相关组合键 (Ctrl+Esc, Ctrl+Shift+Esc)
         if (GetAsyncKeyState(VK_CONTROL) & 0x8000) {
             if (p->vkCode == VK_ESCAPE) block = true;
             if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && p->vkCode == VK_ESCAPE) block = true;
         }
-        // 拦截 PrintScreen
-        if (p->vkCode == VK_SNAPSHOT) block = true;
+
+        // 拦截其他系统功能键
+        if (p->vkCode == VK_SNAPSHOT) block = true; // 截屏
+        if (p->vkCode == VK_APPS)     block = true; // 右键菜单键
+        if (p->vkCode == VK_LWIN || p->vkCode == VK_RWIN) block = true;
 
         if (block) return 1;
     }
