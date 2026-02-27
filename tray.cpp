@@ -1,11 +1,10 @@
 #include "tray.h"
 #include <shellapi.h>
+#include "svg_icons.h"
 
 namespace Tray {
 
 NOTIFYICONDATAW g_nid = {0};
-
-#include "svg_icons.h"
 
 void Create(HWND hWnd) {
     g_nid.cbSize = sizeof(g_nid);
