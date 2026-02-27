@@ -22,6 +22,7 @@ private slots:
 
 private:
     QLineEdit *m_passwordEdit;
+    QPushButton *m_togglePassBtn;
     QPushButton *m_unlockBtn;
     QLabel *m_statusLabel;
     int m_attempts = 0;

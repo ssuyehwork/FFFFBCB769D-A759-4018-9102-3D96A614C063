@@ -19,7 +19,14 @@ const QMap<SvgIcon::IconType, QString> SvgIcon::svgTemplates = {
     {SvgIcon::Pause, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"{color}\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"6\" y=\"4\" width=\"4\" height=\"16\"></rect><rect x=\"14\" y=\"4\" width=\"4\" height=\"16\"></rect></svg>"}
 };
 
+QMap<QString, QPixmap> SvgIcon::m_cache;
+
 QPixmap SvgIcon::get(IconType type, QSize size, QColor color) {
+    QString key = QString("%1_%2x%3_%4").arg(static_cast<int>(type)).arg(size.width()).arg(size.height()).arg(color.name());
+    if (m_cache.contains(key)) {
+        return m_cache.value(key);
+    }
+
     QString svg = svgTemplates.value(type);
     if (svg.isEmpty()) return QPixmap();
 
@@ -33,5 +40,6 @@ QPixmap SvgIcon::get(IconType type, QSize size, QColor color) {
     QPainter painter(&pixmap);
     renderer.render(&painter);
     
+    m_cache.insert(key, pixmap);
     return pixmap;
 }

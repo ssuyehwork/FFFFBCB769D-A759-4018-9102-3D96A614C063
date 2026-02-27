@@ -30,6 +30,7 @@ public:
 
 private:
     static const QMap<IconType, QString> svgTemplates;
+    static QMap<QString, QPixmap> m_cache;
 };
 
 #endif // SVGICON_H

@@ -17,11 +17,22 @@ UnlockDialog::UnlockDialog(QWidget *parent) : QDialog(parent) {
     iconLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(iconLabel);
 
+    QHBoxLayout *passLayout = new QHBoxLayout();
     m_passwordEdit = new QLineEdit(this);
     m_passwordEdit->setEchoMode(QLineEdit::Password);
     m_passwordEdit->setPlaceholderText("输入解锁密码");
-    m_passwordEdit->setStyleSheet("padding: 8px; border: 1px solid #555; border-radius: 4px; background: #222;");
-    layout->addWidget(m_passwordEdit);
+    m_passwordEdit->setStyleSheet("padding: 8px; border: 1px solid #555; border-top-left-radius: 4px; border-bottom-left-radius: 4px; background: #222;");
+
+    m_togglePassBtn = new QPushButton(this);
+    m_togglePassBtn->setFixedSize(34, 34);
+    m_togglePassBtn->setIcon(QIcon(SvgIcon::get(SvgIcon::Eye, QSize(20, 20), Qt::gray)));
+    m_togglePassBtn->setStyleSheet("background: #222; border: 1px solid #555; border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px;");
+    connect(m_togglePassBtn, &QPushButton::clicked, this, &UnlockDialog::togglePasswordVisible);
+
+    passLayout->addWidget(m_passwordEdit);
+    passLayout->addWidget(m_togglePassBtn);
+    passLayout->setSpacing(0);
+    layout->addLayout(passLayout);
 
     m_statusLabel = new QLabel(this);
     m_statusLabel->setAlignment(Qt::AlignCenter);
@@ -78,8 +89,10 @@ void UnlockDialog::attemptUnlock() {
 void UnlockDialog::togglePasswordVisible() {
     if (m_passwordEdit->echoMode() == QLineEdit::Password) {
         m_passwordEdit->setEchoMode(QLineEdit::Normal);
+        m_togglePassBtn->setIcon(QIcon(SvgIcon::get(SvgIcon::EyeOff, QSize(20, 20), Qt::gray)));
     } else {
         m_passwordEdit->setEchoMode(QLineEdit::Password);
+        m_togglePassBtn->setIcon(QIcon(SvgIcon::get(SvgIcon::Eye, QSize(20, 20), Qt::gray)));
     }
 }
 

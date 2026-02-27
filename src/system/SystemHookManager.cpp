@@ -34,7 +34,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
         if (block) return 1;
     }
-    return CallNextHookEx(hKeyHook, nCode, wParam, lParam);
+    return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
 
 LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
@@ -43,7 +43,7 @@ LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
             if (g_hookThread) emit g_hookThread->mouseTouched();
         }
     }
-    return CallNextHookEx(hMouseHook, nCode, wParam, lParam);
+    return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
 
 void HookThread::run() {
@@ -54,14 +54,16 @@ void HookThread::run() {
 
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0)) {
+        if (msg.message == WM_QUIT) break;
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
 
-    UnhookWindowsHookEx(hKeyHook);
-    UnhookWindowsHookEx(hMouseHook);
+    if (hKeyHook) UnhookWindowsHookEx(hKeyHook);
+    if (hMouseHook) UnhookWindowsHookEx(hMouseHook);
     hKeyHook = NULL;
     hMouseHook = NULL;
+    g_hookThread = nullptr;
 }
 #endif
 

@@ -64,12 +64,27 @@ void ConfigManager::save() {
 
 QString ConfigManager::hashPassword(const QString& raw) {
     if (raw.isEmpty()) return "";
-    return QString(QCryptographicHash::hash(raw.toUtf8(), QCryptographicHash::Sha256).toHex());
+    // 使用固定盐值增强安全性
+    static const QString salt = "CountdownLock_Salt_2024";
+    QByteArray saltedData = (raw + salt).toUtf8();
+    return QString(QCryptographicHash::hash(saltedData, QCryptographicHash::Sha256).toHex());
 }
 
 bool ConfigManager::verifyPassword(const QString& raw, const QString& hash) {
     if (hash.isEmpty()) return true; // 未设置密码
-    return hashPassword(raw) == hash;
+
+    // 1. 尝试使用当前（加盐）方式验证
+    if (hashPassword(raw) == hash) return true;
+
+    // 2. 兼容性回退：尝试使用旧版（不加盐）方式验证
+    QString oldHash = QString(QCryptographicHash::hash(raw.toUtf8(), QCryptographicHash::Sha256).toHex());
+    if (oldHash == hash) {
+        // 如果旧版验证通过，可以在此处选择是否自动升级哈希到新版
+        // 为了简化，我们暂时只返回 true
+        return true;
+    }
+
+    return false;
 }
 
 #ifdef Q_OS_WIN
