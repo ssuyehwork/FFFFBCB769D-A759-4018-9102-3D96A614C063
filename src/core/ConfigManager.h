@@ -18,6 +18,7 @@ struct AppConfig {
     bool    launchOnStartup = false;    // 开机自启
     int     maxPasswordAttempts = 5;    // 最大密码错误次数
     int     lockoutDurationSecs = 30;   // 超过错误次数后的惩罚锁定秒数
+    int     warningDurationSeconds = 60;// 预警触发时长 (秒)，默认改为60
     QStringList presetTemplates = {"番茄", "课堂", "深空"}; 
     QList<int>  presetMinutes = {25, 45, 60};
 };

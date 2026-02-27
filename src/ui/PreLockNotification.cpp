@@ -10,8 +10,8 @@ PreLockNotification::PreLockNotification(QWidget *parent) : QWidget(parent) {
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
     setAttribute(Qt::WA_TranslucentBackground);
 
-    m_remaining = 60; // 同步修改初始剩余时间
-    setFixedSize(340, 130);
+    m_remaining = ConfigManager::instance().getConfig().warningDurationSeconds;
+    setFixedSize(360, 140);
 
     QScreen *primary = QGuiApplication::primaryScreen();
     QRect screen = primary->geometry();
@@ -47,33 +47,43 @@ void PreLockNotification::paintEvent(QPaintEvent *event) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
+    // 1. 绘制主体圆角矩形背景 (使用微透明深灰色，符合图片风格)
     QPainterPath path;
-    path.addRoundedRect(rect(), 12, 12);
-    painter.fillPath(path, QColor(30, 30, 30, 200));
+    path.addRoundedRect(rect(), 16, 16);
+    painter.fillPath(path, QColor(25, 25, 25, 230));
 
-    painter.setClipPath(path);
-    painter.fillRect(0, 0, width(), 30, QColor(0, 0, 0, 100));
+    // 2. 移除多余的顶部标题条背景，直接在左上角绘制图标和文字
+    QPixmap lock = SvgIcon::get(SvgIcon::Lock, QSize(18, 18), Qt::white);
+    painter.drawPixmap(15, 15, lock);
 
-    QPixmap lock = SvgIcon::get(SvgIcon::Lock, QSize(16, 16), Qt::white);
-    painter.drawPixmap(10, 7, lock);
     painter.setPen(Qt::white);
-    painter.drawText(35, 20, "即将锁屏");
+    QFont titleFont = painter.font();
+    titleFont.setPixelSize(14);
+    titleFont.setBold(false);
+    painter.setFont(titleFont);
+    painter.drawText(40, 29, "即将锁屏");
 
+    // 3. 绘制核心倒计时文字 "还剩 XX 秒"
     QFont font = painter.font();
-    font.setPixelSize(48);
+    font.setPixelSize(42);
     font.setBold(true);
     painter.setFont(font);
 
-    QColor textColor = (m_remaining <= 10) ? QColor(255, 69, 58) : QColor(255, 159, 10);
-    painter.setPen(textColor);
+    QColor accentColor = (m_remaining <= 10) ? QColor(255, 69, 58) : QColor(255, 153, 0); // 橙黄色调
+    painter.setPen(accentColor);
 
-    QString text = QString("还剩  %1  秒").arg(m_remaining);
-    painter.drawText(rect().adjusted(0, 30, 0, -20), Qt::AlignCenter, text);
+    QString text = QString("还剩 %1 秒").arg(m_remaining);
+    // 居中绘制文字
+    painter.drawText(rect().adjusted(0, 15, 0, 0), Qt::AlignCenter, text);
 
-    int progressWidth = (width() - 40) * m_remaining / 60;
+    // 4. 绘制底部进度条
+    int totalWarning = ConfigManager::instance().getConfig().warningDurationSeconds;
+    int progressWidth = (width() - 40) * m_remaining / (totalWarning > 0 ? totalWarning : 1);
+
     painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(60, 60, 60));
-    painter.drawRoundedRect(20, 100, width() - 40, 8, 4, 4);
-    painter.setBrush(textColor);
-    painter.drawRoundedRect(20, 100, progressWidth, 8, 4, 4);
+    painter.setBrush(QColor(60, 60, 60, 150));
+    painter.drawRoundedRect(20, height() - 25, width() - 40, 8, 4, 4);
+
+    painter.setBrush(accentColor);
+    painter.drawRoundedRect(20, height() - 25, progressWidth, 8, 4, 4);
 }

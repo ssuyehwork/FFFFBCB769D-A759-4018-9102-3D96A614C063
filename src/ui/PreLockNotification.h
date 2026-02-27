@@ -14,7 +14,7 @@ protected:
     void paintEvent(QPaintEvent *event) override;
 
 private:
-    int m_remaining = 20;
+    int m_remaining = 60;
 };
 
 #endif // PRELOCKNOTIFICATION_H

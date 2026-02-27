@@ -28,6 +28,7 @@ private:
     QCheckBox *m_launchOnStartup;
     QSpinBox *m_maxAttempts;
     QSpinBox *m_lockoutSecs;
+    QSpinBox *m_warningSecs;
 };
 
 #endif // SETTINGSPANEL_H

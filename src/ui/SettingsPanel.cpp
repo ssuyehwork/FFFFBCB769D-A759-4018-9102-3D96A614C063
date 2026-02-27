@@ -61,6 +61,11 @@ SettingsPanel::SettingsPanel(QWidget *parent) : QDialog(parent) {
     m_lockoutSecs->setValue(config.lockoutDurationSecs);
     formLayout->addRow("锁定持续秒数：", m_lockoutSecs);
 
+    m_warningSecs = new QSpinBox();
+    m_warningSecs->setRange(5, 300);
+    m_warningSecs->setValue(config.warningDurationSeconds);
+    formLayout->addRow("预警触发时长 (秒)：", m_warningSecs);
+
     mainLayout->addLayout(formLayout);
 
     QPushButton *btnLog = new QPushButton("查看锁屏日志");
@@ -99,6 +104,7 @@ void SettingsPanel::saveAndClose() {
     config.launchOnStartup = m_launchOnStartup->isChecked();
     config.maxPasswordAttempts = m_maxAttempts->value();
     config.lockoutDurationSecs = m_lockoutSecs->value();
+    config.warningDurationSeconds = m_warningSecs->value();
 
     ConfigManager::instance().setConfig(config);
     ConfigManager::instance().save();

@@ -70,19 +70,23 @@ void LockScreenWindow::setupUnlockUi() {
     m_passwordEdit->setEchoMode(QLineEdit::Password);
     m_passwordEdit->setPlaceholderText("输入解锁密码");
     // 优化：使用更平滑的边框渲染，消除圆角抗锯齿瑕疵，增强深色模式视觉效果
+    // 深度优化：移除外层 border，改用内嵌背景和细线模拟，彻底消除圆角处的抗锯齿“白点”
     m_passwordEdit->setStyleSheet(
         "QLineEdit {"
-        "  padding: 10px;"
-        "  border: 1px solid rgba(255, 255, 255, 40);"
-        "  border-radius: 10px;"
-        "  background: rgba(30, 30, 30, 180);"
-        "  color: white;"
+        "  padding: 10px 15px;"
+        "  border: none;"
+        "  border-radius: 12px;"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(45, 45, 45, 220), stop:1 rgba(35, 35, 35, 220));"
+        "  color: #E0E0E0;"
         "  font-size: 16px;"
-        "  selection-background-color: rgba(255, 255, 255, 60);"
+        "  selection-background-color: rgba(0, 120, 215, 120);"
+        "}"
+        "QLineEdit:hover {"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(55, 55, 55, 220), stop:1 rgba(45, 45, 45, 220));"
         "}"
         "QLineEdit:focus {"
-        "  border: 1px solid rgba(255, 255, 255, 100);"
-        "  background: rgba(40, 40, 40, 200);"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(35, 35, 35, 240), stop:1 rgba(25, 25, 25, 240));"
+        "  color: white;"
         "}"
     );
 

@@ -46,7 +46,8 @@ void CountdownEngine::onTick() {
         m_remainingSeconds--;
 
         if (m_state == Counting) {
-            if (m_remainingSeconds <= 60) {
+            int warningThreshold = ConfigManager::instance().getConfig().warningDurationSeconds;
+            if (m_remainingSeconds <= warningThreshold) {
                 setState(PreLockWarning);
                 emit warningPhaseStarted();
                 emit warningTick(m_remainingSeconds);
