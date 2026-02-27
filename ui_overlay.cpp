@@ -29,7 +29,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
         wchar_t timeStr[10];
         swprintf(timeStr, 10, L"%02d:%02d", g_remaining / 60, g_remaining % 60);
 
-        Gdiplus::Font font(L"Segoe UI", 72, Gdiplus::FontStyleBold);
+        Gdiplus::Font font(L"微软雅黑", 72, Gdiplus::FontStyleBold);
         Gdiplus::SolidBrush textBrush(Gdiplus::Color::White);
         Gdiplus::StringFormat format;
         format.SetAlignment(Gdiplus::StringAlignmentCenter);

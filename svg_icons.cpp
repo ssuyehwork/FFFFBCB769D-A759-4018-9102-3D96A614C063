@@ -77,6 +77,7 @@ HBITMAP RenderSvgIcon(const wchar_t* svgPathD, int width, int height, Gdiplus::C
     Gdiplus::Bitmap bitmap(width, height, PixelFormat32bppARGB);
     Gdiplus::Graphics graphics(&bitmap);
     graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+    graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
     graphics.Clear(bgColor);
 
     Gdiplus::GraphicsPath* path = ParseSvgPath(svgPathD);
