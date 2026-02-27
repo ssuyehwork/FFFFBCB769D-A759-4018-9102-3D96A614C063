@@ -6,7 +6,9 @@
 #include <QPropertyAnimation>
 
 UnlockDialog::UnlockDialog(QWidget *parent) : QDialog(parent) {
-    setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+    // 明确设置置顶标志，并确保它是模态对话框
+    setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::WindowSystemMenuHint);
+    setWindowModality(Qt::ApplicationModal);
     setFixedSize(300, 200);
     setStyleSheet("background-color: rgba(30, 30, 30, 230); color: white; border-radius: 10px;");
 

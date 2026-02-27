@@ -89,60 +89,56 @@ void LockScreenWindow::paintEvent(QPaintEvent *event) {
     painter.setRenderHint(QPainter::Antialiasing);
 
     AppConfig config = ConfigManager::instance().getConfig();
+    int remaining = CountdownEngine::instance().remainingSeconds();
 
-    if (!m_locked) {
-        // 预警阶段：仅绘制倒计时大数字
-        if (CountdownEngine::instance().remainingSeconds() <= 20) {
-            painter.setPen(Qt::red);
-            QFont font = painter.font();
-            font.setPixelSize(120);
-            font.setBold(true);
-            painter.setFont(font);
-            painter.drawText(rect(), Qt::AlignCenter, QString::number(CountdownEngine::instance().remainingSeconds()));
-        }
-        return;
-    }
-
-    // 1. 背景图 (如果有)
-    if (!config.backgroundImagePath.isEmpty()) {
-        QPixmap bg(config.backgroundImagePath);
-        if (!bg.isNull()) {
-            painter.drawPixmap(rect(), bg.scaled(size(), Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation));
-            painter.fillRect(rect(), QColor(0, 0, 0, 50)); // 叠加一层半透明黑确保文字可见
+    // 1. 绘制背景 (如果是锁定模式)
+    if (m_locked) {
+        if (!config.backgroundImagePath.isEmpty()) {
+            QPixmap bg(config.backgroundImagePath);
+            if (!bg.isNull()) {
+                painter.drawPixmap(rect(), bg.scaled(size(), Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation));
+                painter.fillRect(rect(), QColor(0, 0, 0, 50));
+            }
         }
     }
 
-    // 2. 锁图标
-    if (config.showLockIcon) {
+    // 2. 锁图标 (预警期和锁定模式均显示)
+    if (config.showLockIcon && (m_locked || remaining <= 20)) {
         QPixmap lock = SvgIcon::get(SvgIcon::Lock, QSize(120, 120), Qt::white);
         painter.drawPixmap((width() - 120) / 2, (height() - 120) / 2 - 40, lock);
     }
 
-    // 3. 自定义文字
-    painter.setPen(Qt::white);
-    QFont font = painter.font();
-    font.setPixelSize(24);
-    painter.setFont(font);
-    painter.drawText(rect().adjusted(0, 100, 0, 0), Qt::AlignCenter, config.customMessage);
-
-    // 4. 实时时钟 (右下角)
-    font.setPixelSize(18);
-    painter.setFont(font);
-    QString timeStr = QDateTime::currentDateTime().toString("HH:mm:ss");
-    painter.drawText(rect().adjusted(0, 0, -20, -20), Qt::AlignRight | Qt::AlignBottom, timeStr);
-
-    // 5. 最后20秒倒计时 (顶部)
-    if (CountdownEngine::instance().state() == CountdownEngine::LastWarning || 
-        (CountdownEngine::instance().state() == CountdownEngine::Counting && CountdownEngine::instance().remainingSeconds() <= 20)) {
-        font.setPixelSize(80);
-        font.setBold(true);
+    // 3. 自定义文字 (预警期和锁定模式均显示)
+    if (m_locked || remaining <= 20) {
+        painter.setPen(Qt::white);
+        QFont font = painter.font();
+        font.setPixelSize(24);
         painter.setFont(font);
+        painter.drawText(rect().adjusted(0, 100, 0, 0), Qt::AlignCenter, config.customMessage);
+    }
+
+    // [已移除] 4. 实时时钟 (右下角时间已根据用户要求彻底移除)
+
+    // 5. 倒计时显示
+    if (remaining <= 20 && remaining > 0) {
         painter.setPen(Qt::red);
-        painter.drawText(rect().adjusted(0, 40, 0, 0), Qt::AlignHCenter | Qt::AlignTop, QString::number(CountdownEngine::instance().remainingSeconds()));
+        QFont font = painter.font();
+        font.setBold(true);
+        if (m_locked) {
+            // 锁定状态下，倒计时显示在顶部
+            font.setPixelSize(80);
+            painter.setFont(font);
+            painter.drawText(rect().adjusted(0, 40, 0, 0), Qt::AlignHCenter | Qt::AlignTop, QString::number(remaining));
+        } else {
+            // 预警状态下，倒计时显示在中央
+            font.setPixelSize(120);
+            painter.setFont(font);
+            painter.drawText(rect(), Qt::AlignCenter, QString::number(remaining));
+        }
     }
     
-    // 6. 警告提示 (左下角)
-    if (m_showWarning) {
+    // 6. 警告提示 (仅锁定模式有效)
+    if (m_locked && m_showWarning) {
         painter.setOpacity(m_warningOpacity);
         QPixmap warn = SvgIcon::get(SvgIcon::Warning, QSize(32, 32), Qt::yellow);
         painter.drawPixmap(20, height() - 52, warn);
