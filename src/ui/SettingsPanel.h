@@ -21,12 +21,10 @@ private slots:
 
 private:
     QSlider *m_opacitySlider;
-    QSpinBox *m_lockDuration;
     QLineEdit *m_bgPathEdit;
     QCheckBox *m_showLockIcon;
     QLineEdit *m_customMessage;
     QCheckBox *m_preventSleep;
-    QCheckBox *m_autoRestart;
     QCheckBox *m_launchOnStartup;
     QSpinBox *m_maxAttempts;
     QSpinBox *m_lockoutSecs;

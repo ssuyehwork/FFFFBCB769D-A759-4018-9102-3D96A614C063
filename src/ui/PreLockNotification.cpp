@@ -10,6 +10,7 @@ PreLockNotification::PreLockNotification(QWidget *parent) : QWidget(parent) {
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
     setAttribute(Qt::WA_TranslucentBackground);
 
+    m_remaining = 60; // 同步修改初始剩余时间
     setFixedSize(340, 130);
 
     QScreen *primary = QGuiApplication::primaryScreen();
@@ -69,7 +70,7 @@ void PreLockNotification::paintEvent(QPaintEvent *event) {
     QString text = QString("还剩  %1  秒").arg(m_remaining);
     painter.drawText(rect().adjusted(0, 30, 0, -20), Qt::AlignCenter, text);
 
-    int progressWidth = (width() - 40) * m_remaining / 20;
+    int progressWidth = (width() - 40) * m_remaining / 60;
     painter.setPen(Qt::NoPen);
     painter.setBrush(QColor(60, 60, 60));
     painter.drawRoundedRect(20, 100, width() - 40, 8, 4, 4);

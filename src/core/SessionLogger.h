@@ -18,6 +18,7 @@ public:
 
     void logSession(const SessionRecord& record);
     QList<SessionRecord> getHistory() const;
+    void clearHistory();
 
 private:
     SessionLogger();

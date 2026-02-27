@@ -49,6 +49,11 @@ LockScreenWindow::LockScreenWindow(const QRect& geometry, bool isMain, QWidget *
     m_warningTimer = new QTimer(this);
     connect(m_warningTimer, &QTimer::timeout, this, &LockScreenWindow::fadeOutWarning);
 
+    // 修复：增加内部秒级定时器，确保锁定状态下右下角时钟每秒刷新
+    QTimer* clockRefreshTimer = new QTimer(this);
+    connect(clockRefreshTimer, &QTimer::timeout, this, qOverload<>(&LockScreenWindow::update));
+    clockRefreshTimer->start(1000);
+
     if (m_isMain) {
         setupUnlockUi();
     }
@@ -203,6 +208,7 @@ void LockScreenWindow::paintEvent(QPaintEvent *event) {
 
     AppConfig config = ConfigManager::instance().getConfig();
     int remaining = CountdownEngine::instance().remainingSeconds();
+    bool isWarning = (CountdownEngine::instance().state() == CountdownEngine::PreLockWarning);
 
     // 1. 绘制背景 (如果是锁定模式)
     if (m_locked) {
@@ -245,16 +251,11 @@ void LockScreenWindow::paintEvent(QPaintEvent *event) {
     painter.setOpacity(1.0);
 
     // 5. 倒计时显示
-    if (remaining <= 20 && remaining > 0) {
+    if (remaining <= 60 && remaining > 0 && isWarning) {
         painter.setPen(QColor(255, 0, 0, 200)); // 鲜艳的红色
         QFont font = painter.font();
         font.setBold(true);
-        if (m_locked) {
-            // 锁定状态下，倒计时显示在顶部
-            font.setPixelSize(80);
-            painter.setFont(font);
-            painter.drawText(rect().adjusted(0, 40, 0, 0), Qt::AlignHCenter | Qt::AlignTop, QString::number(remaining));
-        } else {
+        if (isWarning) {
             // 预警状态下，倒计时显示在中央，120px 巨大数字
             font.setPixelSize(120);
             painter.setFont(font);

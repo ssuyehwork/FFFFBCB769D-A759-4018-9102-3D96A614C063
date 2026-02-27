@@ -166,9 +166,8 @@ private slots:
         rec.manualUnlock = true;
         SessionLogger::instance().logSession(rec);
 
-        // 解锁后立即回到设置界面
-        m_isUnlockDialogOpen = false;
-        showSetup();
+        // 解锁后直接退出程序
+        qApp->quit();
     }
 
     void handleMouseTouch() {

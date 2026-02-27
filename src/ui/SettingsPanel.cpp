@@ -8,6 +8,7 @@
 #include <QMessageBox>
 #include <QTableWidget>
 #include <QHeaderView>
+#include <QInputDialog>
 
 SettingsPanel::SettingsPanel(QWidget *parent) : QDialog(parent) {
     setWindowTitle("设置");
@@ -22,11 +23,6 @@ SettingsPanel::SettingsPanel(QWidget *parent) : QDialog(parent) {
     m_opacitySlider->setRange(0, 100);
     m_opacitySlider->setValue(config.overlayOpacity);
     formLayout->addRow("遮罩不透明度：", m_opacitySlider);
-
-    m_lockDuration = new QSpinBox();
-    m_lockDuration->setRange(1, 60);
-    m_lockDuration->setValue(config.lockDurationMinutes);
-    formLayout->addRow("锁屏持续时长 (分)：", m_lockDuration);
 
     QHBoxLayout *bgLayout = new QHBoxLayout();
     m_bgPathEdit = new QLineEdit(config.backgroundImagePath);
@@ -50,10 +46,6 @@ SettingsPanel::SettingsPanel(QWidget *parent) : QDialog(parent) {
     m_preventSleep = new QCheckBox("阻止系统息屏/睡眠");
     m_preventSleep->setChecked(config.preventSleep);
     formLayout->addRow(m_preventSleep);
-
-    m_autoRestart = new QCheckBox("解锁后自动开始下一轮");
-    m_autoRestart->setChecked(config.autoRestartAfterUnlock);
-    formLayout->addRow(m_autoRestart);
 
     m_launchOnStartup = new QCheckBox("开机自启动");
     m_launchOnStartup->setChecked(config.launchOnStartup);
@@ -100,12 +92,10 @@ void SettingsPanel::clearBackgroundImage() {
 void SettingsPanel::saveAndClose() {
     AppConfig config = ConfigManager::instance().getConfig();
     config.overlayOpacity = m_opacitySlider->value();
-    config.lockDurationMinutes = m_lockDuration->value();
     config.backgroundImagePath = m_bgPathEdit->text();
     config.showLockIcon = m_showLockIcon->isChecked();
     config.customMessage = m_customMessage->text();
     config.preventSleep = m_preventSleep->isChecked();
-    config.autoRestartAfterUnlock = m_autoRestart->isChecked();
     config.launchOnStartup = m_launchOnStartup->isChecked();
     config.maxPasswordAttempts = m_maxAttempts->value();
     config.lockoutDurationSecs = m_lockoutSecs->value();
@@ -139,5 +129,23 @@ void SettingsPanel::showLog() {
     }
     
     layout->addWidget(table);
+
+    QPushButton *btnClear = new QPushButton("清空所有日志", dlg);
+    btnClear->setStyleSheet("color: red; padding: 5px;");
+    connect(btnClear, &QPushButton::clicked, [this, dlg, table]() {
+        bool ok;
+        QString pwd = QInputDialog::getText(dlg, "安全验证", "请输入解锁密码以清空日志：", QLineEdit::Password, "", &ok);
+        if (ok && !pwd.isEmpty()) {
+            if (ConfigManager::verifyPassword(pwd, ConfigManager::instance().getConfig().passwordHash)) {
+                SessionLogger::instance().clearHistory();
+                table->setRowCount(0);
+                QMessageBox::information(dlg, "成功", "日志已清空。");
+            } else {
+                QMessageBox::warning(dlg, "错误", "密码不正确，操作已取消。");
+            }
+        }
+    });
+    layout->addWidget(btnClear);
+
     dlg->exec();
 }

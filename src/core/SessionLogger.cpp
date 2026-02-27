@@ -52,3 +52,10 @@ QList<SessionRecord> SessionLogger::getHistory() const {
     }
     return history;
 }
+
+void SessionLogger::clearHistory() {
+    QFile file(m_logPath);
+    if (file.exists()) {
+        file.remove();
+    }
+}

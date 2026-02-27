@@ -46,7 +46,7 @@ void CountdownEngine::onTick() {
         m_remainingSeconds--;
 
         if (m_state == Counting) {
-            if (m_remainingSeconds <= 20) {
+            if (m_remainingSeconds <= 60) {
                 setState(PreLockWarning);
                 emit warningPhaseStarted();
                 emit warningTick(m_remainingSeconds);
