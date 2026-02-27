@@ -18,18 +18,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     switch (message) {
     case WM_CREATE: {
         g_hBackBrush = CreateSolidBrush(RGB(30, 30, 46));
-        g_hFont = CreateFontW(-14, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH | FF_SWISS, L"微软雅黑");
+        g_hFont = CreateFontW(-16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH | FF_SWISS, L"微软雅黑");
 
         g_hLockIcon = RenderSvgIcon(SvgPaths::LOCK_CLOSED, 48, 48, ColorTheme::Blue, ColorTheme::Background);
 
-        // 重新布局
-        HWND hLabel1 = CreateWindowW(L"STATIC", L"专注时长 (分钟)", WS_VISIBLE | WS_CHILD, 40, 80, 120, 20, hWnd, NULL, g_hInstance, NULL);
-        HWND hEdit1 = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"45", WS_VISIBLE | WS_CHILD | ES_NUMBER | ES_CENTER, 170, 77, 60, 24, hWnd, (HMENU)1001, g_hInstance, NULL);
+        // 重新布局 - 采用标准表单对齐与黄金比例
+        int cw = 434;
+        int labelW = 130;
+        int gap = 15;
+        int editW_p = 220;
+        int totalW = labelW + gap + editW_p;
+        int startX = (cw - totalW) / 2;
 
-        HWND hLabel2 = CreateWindowW(L"STATIC", L"解锁密码", WS_VISIBLE | WS_CHILD, 40, 120, 120, 20, hWnd, NULL, g_hInstance, NULL);
-        HWND hEdit2 = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"", WS_VISIBLE | WS_CHILD | ES_PASSWORD, 170, 117, 200, 24, hWnd, (HMENU)1002, g_hInstance, NULL);
+        HWND hLabel1 = CreateWindowW(L"STATIC", L"专注时长 (分钟)：", WS_VISIBLE | WS_CHILD | SS_RIGHT, startX, 78, labelW, 20, hWnd, NULL, g_hInstance, NULL);
+        HWND hEdit1 = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"45", WS_VISIBLE | WS_CHILD | ES_NUMBER | ES_CENTER, startX + labelW + gap, 75, 80, 26, hWnd, (HMENU)1001, g_hInstance, NULL);
 
-        HWND hBtn = CreateWindowW(L"BUTTON", L"开始专注", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 125, 180, 200, 40, hWnd, (HMENU)1003, g_hInstance, NULL);
+        HWND hLabel2 = CreateWindowW(L"STATIC", L"解锁密码：", WS_VISIBLE | WS_CHILD | SS_RIGHT, startX, 118, labelW, 20, hWnd, NULL, g_hInstance, NULL);
+        HWND hEdit2 = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"", WS_VISIBLE | WS_CHILD | ES_PASSWORD | ES_CENTER, startX + labelW + gap, 115, editW_p, 26, hWnd, (HMENU)1002, g_hInstance, NULL);
+
+        HWND hBtn = CreateWindowW(L"BUTTON", L"开始专注", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, (cw - 180) / 2, 165, 180, 38, hWnd, (HMENU)1003, g_hInstance, NULL);
 
         SendMessage(hLabel1, WM_SETFONT, (WPARAM)g_hFont, TRUE);
         SendMessage(hEdit1, WM_SETFONT, (WPARAM)g_hFont, TRUE);
@@ -47,12 +54,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     case WM_PAINT: {
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hWnd, &ps);
+        RECT rc; GetClientRect(hWnd, &rc);
         Gdiplus::Graphics graphics(hdc);
+        graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
         graphics.Clear(ColorTheme::Background);
 
         if (g_hLockIcon) {
             Gdiplus::Bitmap bmp(g_hLockIcon, NULL);
-            graphics.DrawImage(&bmp, 201, 15, 48, 48);
+            // 确保图标完全居中并保持比例，位置微调以适应视觉重心
+            graphics.DrawImage(&bmp, (float)(rc.right - 48) / 2.0f, 12.0f, 48.0f, 48.0f);
         }
 
         EndPaint(hWnd, &ps);
