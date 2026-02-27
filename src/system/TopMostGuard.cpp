@@ -39,6 +39,10 @@ void TopMostGuard::setFocusStealingEnabled(bool enabled) {
 
 void TopMostGuard::onGuardTick() {
 #ifdef Q_OS_WIN
+    // 如果禁用了焦点抢夺（通常是因为弹出了解锁对话框），
+    // 我们也应该停止对遮罩窗口的置顶调用，避免它们盖过对话框
+    if (!m_focusStealingEnabled) return;
+
     for (QWidget* w : m_windows) {
         if (w && w->isVisible()) {
             HWND hwnd = reinterpret_cast<HWND>(w->winId());
@@ -47,7 +51,7 @@ void TopMostGuard::onGuardTick() {
             SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
             
             // 如果开启了抢焦点逻辑，且不是前台窗口，且是主屏窗口，则抢回焦点
-            if (m_focusStealingEnabled && w->property("isMainScreen").toBool()) {
+            if (w->property("isMainScreen").toBool()) {
                 if (GetForegroundWindow() != hwnd) {
                     SetForegroundWindow(hwnd);
                 }

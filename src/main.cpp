@@ -70,13 +70,29 @@ private slots:
     }
 
     void showUnlockDialog() {
-        if (m_lockWindows.isEmpty()) return;
+        if (m_lockWindows.isEmpty() || m_isUnlockDialogOpen) return;
 
+        m_isUnlockDialogOpen = true;
+
+        // 1. 暂停干扰源
         TopMostGuard::instance().setFocusStealingEnabled(false);
+        for (auto w : m_lockWindows) w->setClockPaused(true);
+
+        // 2. 暂停系统钩子，允许用户与 UnlockDialog 交互
+        SystemHookManager::instance().stopHook();
+
         UnlockDialog dlg;
         connect(&dlg, &UnlockDialog::unlockSucceeded, this, &AppController::handleUnlock);
-        dlg.exec();
-        TopMostGuard::instance().setFocusStealingEnabled(true);
+
+        // 如果用户关闭了对话框但未解锁（如点击了对话框外的取消，尽管我们设了置顶）
+        if (dlg.exec() != QDialog::Accepted) {
+            // 3. 恢复锁定状态
+            SystemHookManager::instance().startHook();
+            for (auto w : m_lockWindows) w->setClockPaused(false);
+            TopMostGuard::instance().setFocusStealingEnabled(true);
+            m_isUnlockDialogOpen = false;
+        }
+        // 如果 Accepted，handleUnlock 会处理后续清理并退出
     }
 
     void handleUnlock() {
@@ -98,9 +114,8 @@ private slots:
         rec.manualUnlock = true;
         SessionLogger::instance().logSession(rec);
 
-        if (ConfigManager::instance().getConfig().autoRestartAfterUnlock) {
-            showSetup();
-        }
+        // 解锁后直接退出程序
+        qApp->quit();
     }
 
     void handleMouseTouch() {
@@ -123,6 +138,7 @@ private:
     QList<LockScreenWindow*> m_lockWindows;
     QDateTime m_sessionStartTime;
     int m_touchCount = 0;
+    bool m_isUnlockDialogOpen = false;
 };
 
 int main(int argc, char *argv[]) {

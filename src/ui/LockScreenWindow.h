@@ -21,6 +21,7 @@ public slots:
     void fadeOutWarning();
     void showTouchWarning();
     void setLockMode(bool locked);
+    void setClockPaused(bool paused);
 
 private:
     void applyAcrylic();

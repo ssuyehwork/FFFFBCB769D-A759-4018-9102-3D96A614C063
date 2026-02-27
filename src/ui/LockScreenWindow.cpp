@@ -53,6 +53,11 @@ void LockScreenWindow::setLockMode(bool locked) {
     update();
 }
 
+void LockScreenWindow::setClockPaused(bool paused) {
+    if (paused) m_clockTimer->stop();
+    else m_clockTimer->start(1000);
+}
+
 void LockScreenWindow::applyAcrylic() {
     if (!m_locked) return;
 #ifdef Q_OS_WIN
