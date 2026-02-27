@@ -5,7 +5,7 @@
 
 TrayManager::TrayManager(QObject *parent) : QObject(parent) {
     m_trayIcon = new QSystemTrayIcon(this);
-    m_trayIcon->setIcon(QIcon(SvgIcon::get(SvgIcon::Lock, QSize(16, 16), Qt::white)));
+    m_trayIcon->setIcon(QIcon(SvgIcon::get(SvgIcon::Lock, QSize(16, 16), QColor("#4CAF50"))));
     
     QMenu *menu = new QMenu();
     
