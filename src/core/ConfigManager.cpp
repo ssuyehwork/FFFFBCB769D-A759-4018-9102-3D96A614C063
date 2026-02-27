@@ -18,6 +18,7 @@ ConfigManager& ConfigManager::instance() {
 
 void ConfigManager::load() {
     m_config.countdownMinutes = m_settings->value("countdownMinutes", 45).toInt();
+    m_config.lockDurationMinutes = m_settings->value("lockDurationMinutes", 5).toInt();
     m_config.rememberPassword = m_settings->value("rememberPassword", true).toBool();
     m_config.passwordHash = m_settings->value("passwordHash", "").toString();
     m_config.overlayOpacity = m_settings->value("overlayOpacity", 80).toInt();
@@ -40,6 +41,7 @@ void ConfigManager::load() {
 
 void ConfigManager::save() {
     m_settings->setValue("countdownMinutes", m_config.countdownMinutes);
+    m_settings->setValue("lockDurationMinutes", m_config.lockDurationMinutes);
     m_settings->setValue("rememberPassword", m_config.rememberPassword);
     m_settings->setValue("passwordHash", m_config.passwordHash);
     m_settings->setValue("overlayOpacity", m_config.overlayOpacity);

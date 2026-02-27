@@ -18,9 +18,9 @@ void CountdownEngine::start(int minutes) {
 }
 
 void CountdownEngine::forceLock() {
-    m_remainingSeconds = 0;
+    m_remainingSeconds = ConfigManager::instance().getConfig().lockDurationMinutes * 60;
     setState(Locked);
-    m_timer->stop();
+    m_timer->start(1000); // 锁定状态也需要计时以实现“自然结束”
     emit lockActivated();
 }
 
@@ -48,10 +48,24 @@ void CountdownEngine::onTick() {
             setState(LastWarning);
             emit warningPhaseStarted();
         } else if (m_remainingSeconds == 0) {
-            setState(Locked);
-            emit lockActivated();
-            m_timer->stop(); // 锁屏后由 UI 逻辑或外部信号恢复或结束
+            if (m_state == Counting || m_state == LastWarning) {
+                // 进入锁定阶段
+                m_remainingSeconds = ConfigManager::instance().getConfig().lockDurationMinutes * 60;
+                setState(Locked);
+                emit lockActivated();
+            } else if (m_state == Locked) {
+                // 锁定时间自然结束
+                setState(Idle);
+                emit finished();
+                m_timer->stop();
+            }
         }
+    } else if (m_remainingSeconds <= 0 && m_state != Idle) {
+         if (m_state == Locked) {
+            setState(Idle);
+            emit finished();
+         }
+         m_timer->stop();
     }
 }
 

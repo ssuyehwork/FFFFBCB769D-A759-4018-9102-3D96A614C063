@@ -34,6 +34,11 @@ LockScreenWindow::LockScreenWindow(const QRect& geometry, bool isMain, QWidget *
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
     setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_TransparentForMouseEvents);
+    // 确保窗口能穿透点击（在预警期）
+#ifdef Q_OS_WIN
+    HWND hwnd = reinterpret_cast<HWND>(winId());
+    SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_TRANSPARENT | WS_EX_LAYERED);
+#endif
     setProperty("isMainScreen", isMain);
 
     m_warningTimer = new QTimer(this);
@@ -45,6 +50,11 @@ void LockScreenWindow::setLockMode(bool locked) {
     setProperty("isLocked", locked);
     if (m_locked) {
         setAttribute(Qt::WA_TransparentForMouseEvents, false);
+#ifdef Q_OS_WIN
+        HWND hwnd = reinterpret_cast<HWND>(winId());
+        // 移除穿透属性
+        SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) & ~WS_EX_TRANSPARENT);
+#endif
         applyAcrylic();
     }
     update();
@@ -88,11 +98,15 @@ void LockScreenWindow::paintEvent(QPaintEvent *event) {
 
     // 1. 绘制背景 (如果是锁定模式)
     if (m_locked) {
+        // 核心修复：即使没有图片，也必须绘制一层底色，确保界面可见
+        painter.fillRect(rect(), QColor(0, 0, 0, 180));
+
         if (!config.backgroundImagePath.isEmpty()) {
             QPixmap bg(config.backgroundImagePath);
             if (!bg.isNull()) {
                 painter.drawPixmap(rect(), bg.scaled(size(), Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation));
-                painter.fillRect(rect(), QColor(0, 0, 0, 50)); 
+                // 图片之上再叠加一层半透明，保证文字清晰
+                painter.fillRect(rect(), QColor(0, 0, 0, 100));
             }
         }
     }
@@ -116,7 +130,7 @@ void LockScreenWindow::paintEvent(QPaintEvent *event) {
 
     // 5. 倒计时显示
     if (remaining <= 20 && remaining > 0) {
-        painter.setPen(Qt::red);
+        painter.setPen(QColor(255, 0, 0, 200)); // 鲜艳的红色
         QFont font = painter.font();
         font.setBold(true);
         if (m_locked) {
@@ -125,7 +139,7 @@ void LockScreenWindow::paintEvent(QPaintEvent *event) {
             painter.setFont(font);
             painter.drawText(rect().adjusted(0, 40, 0, 0), Qt::AlignHCenter | Qt::AlignTop, QString::number(remaining));
         } else {
-            // 预警状态下，倒计时显示在中央
+            // 预警状态下，倒计时显示在中央，120px 巨大数字
             font.setPixelSize(120);
             painter.setFont(font);
             painter.drawText(rect(), Qt::AlignCenter, QString::number(remaining));

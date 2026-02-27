@@ -15,6 +15,7 @@
 #include "ui/LockScreenWindow.h"
 #include "ui/UnlockDialog.h"
 #include "ui/TrayManager.h"
+#include <QToolTip>
 
 class AppController : public QObject, public QAbstractNativeEventFilter {
     Q_OBJECT
@@ -31,11 +32,10 @@ public:
         connect(m_tray, &TrayManager::unlockRequested, this, &AppController::showUnlockDialog);
 
         connect(&CountdownEngine::instance(), &CountdownEngine::tickSecond, m_tray, &TrayManager::updateRemainingTime);
-        connect(&CountdownEngine::instance(), &CountdownEngine::tickSecond, this, [this]() {
-            for (auto w : m_lockWindows) w->update();
-        });
-        connect(&CountdownEngine::instance(), &CountdownEngine::warningPhaseStarted, this, &AppController::activateLock);
+        connect(&CountdownEngine::instance(), &CountdownEngine::tickSecond, this, &AppController::handleTick);
+        connect(&CountdownEngine::instance(), &CountdownEngine::warningPhaseStarted, this, &AppController::handleWarning);
         connect(&CountdownEngine::instance(), &CountdownEngine::lockActivated, this, &AppController::activateLock);
+        connect(&CountdownEngine::instance(), &CountdownEngine::finished, this, &AppController::handleUnlock);
         
         connect(&SystemHookManager::instance(), &SystemHookManager::escPressed, this, &AppController::showUnlockDialog);
         connect(&SystemHookManager::instance(), &SystemHookManager::mouseTouched, this, &AppController::handleMouseTouch);
@@ -73,19 +73,25 @@ private slots:
         }
     }
 
+    void handleTick(int remaining) {
+        Q_UNUSED(remaining);
+        // 更新所有窗口重绘
+        for (auto w : m_lockWindows) w->update();
+    }
+
+    void handleWarning() {
+        // 预警期：创建遮罩窗口，但此时是全透明且穿透点击的，仅用于显示巨大倒计时
+        activateLock();
+    }
+
     void activateLock() {
         if (m_lockWindows.isEmpty()) {
             for (QScreen* screen : QGuiApplication::screens()) {
                 bool isMain = (screen == QGuiApplication::primaryScreen());
                 LockScreenWindow* w = new LockScreenWindow(screen->geometry(), isMain);
                 
-                // 以不激活焦点的方式显示，避免打断用户当前操作
-#ifdef Q_OS_WIN
-                HWND hwnd = reinterpret_cast<HWND>(w->winId());
-                ShowWindow(hwnd, SW_SHOWNOACTIVATE);
-#else
+                // 真正的锁定：显示并置顶
                 w->show();
-#endif
                 m_lockWindows.append(w);
                 TopMostGuard::instance().addWindow(w);
             }

@@ -8,6 +8,7 @@
 
 struct AppConfig {
     int     countdownMinutes = 45;      // 倒计时分钟数，默认45
+    int     lockDurationMinutes = 5;    // 锁屏持续分钟数，默认5
     bool    rememberPassword = true;    // 是否记住密码
     QString passwordHash = "";          // SHA-256哈希后的密码
     int     overlayOpacity = 80;        // 遮罩不透明度 0~100，默认80
