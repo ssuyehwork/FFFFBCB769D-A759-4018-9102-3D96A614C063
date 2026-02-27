@@ -25,6 +25,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         bool block = false;
         // 拦截 Win 键
         if (p->vkCode == VK_LWIN || p->vkCode == VK_RWIN) block = true;
+        // 拦截 Ctrl+Alt+Delete (虽然LL钩子拦不住，但我们可以拦截其他相关的键序列)
         // 拦截 Alt+Tab, Alt+F4, Alt+Esc
         if (GetAsyncKeyState(VK_MENU) & 0x8000) {
             if (p->vkCode == VK_TAB || p->vkCode == VK_F4 || p->vkCode == VK_ESCAPE) block = true;

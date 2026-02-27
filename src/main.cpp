@@ -22,8 +22,10 @@ class AppController : public QObject, public QAbstractNativeEventFilter {
 public:
     AppController() {
 #ifdef Q_OS_WIN
-        if (!RegisterHotKey(NULL, 1, MOD_CONTROL | MOD_ALT, 'L')) {
-            // 热键注册失败（可能被占用）
+        // 创建辅助窗口用于稳定接收热键消息
+        m_hotkeyWindow = new QWidget();
+        if (!RegisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 1, MOD_CONTROL | MOD_ALT, 'L')) {
+            // 热键注册失败
         }
         qApp->installNativeEventFilter(this);
 #endif
@@ -37,7 +39,7 @@ public:
         connect(&CountdownEngine::instance(), &CountdownEngine::warningTick, this, &AppController::handleWarningTick);
         connect(&CountdownEngine::instance(), &CountdownEngine::lockActivated, this, &AppController::activateLock);
         connect(&CountdownEngine::instance(), &CountdownEngine::unlockSucceeded, this, &AppController::handleUnlock);
-        connect(&CountdownEngine::instance(), &CountdownEngine::finished, this, &AppController::handleUnlock);
+        // 彻底移除5分钟逻辑，所以不再需要监听 finished (倒计时自然结束) 信号
         
         // 移除 Esc 触发对话框的全局连接，改为遮罩内部处理
         connect(&SystemHookManager::instance(), &SystemHookManager::mouseTouched, this, &AppController::handleMouseTouch);
@@ -133,8 +135,8 @@ private slots:
 
     void handleUnlock() {
         TopMostGuard::instance().stopGuard();
+        SystemHookManager::instance().setBlocking(false); // 停止拦截 Win 键等
         TopMostGuard::instance().clearWindows();
-        SystemHookManager::instance().stopHook();
         PowerManager::allowSleepAndScreenOff();
 
         for (auto w : m_lockWindows) w->deleteLater();
@@ -150,13 +152,9 @@ private slots:
         rec.manualUnlock = true;
         SessionLogger::instance().logSession(rec);
 
-        // 修复：尊重 "解锁后自动重启" 配置
-        if (ConfigManager::instance().getConfig().autoRestartAfterUnlock) {
-            m_isUnlockDialogOpen = false;
-            showSetup();
-        } else {
-            qApp->quit();
-        }
+        // 解锁后立即回到设置界面
+        m_isUnlockDialogOpen = false;
+        showSetup();
     }
 
     void handleMouseTouch() {
@@ -176,10 +174,12 @@ private slots:
 
     void handleExit() {
 #ifdef Q_OS_WIN
-        UnregisterHotKey(NULL, 1);
+        if (m_hotkeyWindow) {
+            UnregisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 1);
+        }
 #endif
         if (!m_lockWindows.isEmpty()) {
-            showUnlockDialog();
+            // 锁定中，不响应退出
         } else {
             qApp->quit();
         }
@@ -191,6 +191,8 @@ private slots:
         m_sessionStartTime = QDateTime::currentDateTime();
         m_touchCount = 0;
         
+        // 强制进入锁定前先激活钩子阻塞，确保 Win 键立即被拦
+        SystemHookManager::instance().setBlocking(true);
         // 强制引擎进入锁定状态
         CountdownEngine::instance().forceLock();
     }
@@ -204,6 +206,7 @@ private:
     int m_touchCount = 0;
     bool m_isUnlockDialogOpen = false;
     PreLockNotification *m_preLockNotify = nullptr;
+    QWidget *m_hotkeyWindow = nullptr;
 };
 
 int main(int argc, char *argv[]) {

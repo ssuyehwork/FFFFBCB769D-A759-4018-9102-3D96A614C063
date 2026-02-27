@@ -19,9 +19,9 @@ void CountdownEngine::start(int minutes) {
 }
 
 void CountdownEngine::forceLock() {
-    m_remainingSeconds = ConfigManager::instance().getConfig().lockDurationMinutes * 60;
+    m_timer->stop();
+    m_remainingSeconds = 0;
     setState(Locked);
-    m_timer->start(1000); // 锁定状态也需要计时以实现“自然结束”
     emit lockActivated();
 }
 
@@ -49,25 +49,18 @@ void CountdownEngine::onTick() {
                 setState(PreLockWarning);
                 emit warningPhaseStarted();
                 emit warningTick(m_remainingSeconds);
-                emit tickSecond(m_remainingSeconds); // 同时发射以更新托盘
+                emit tickSecond(m_remainingSeconds);
             } else {
                 emit tickSecond(m_remainingSeconds);
             }
         } else if (m_state == PreLockWarning) {
             emit warningTick(m_remainingSeconds);
-            emit tickSecond(m_remainingSeconds); // 预警期也需要更新托盘
-            if (m_remainingSeconds == 0) {
-                setState(Locking);
-                m_remainingSeconds = ConfigManager::instance().getConfig().lockDurationMinutes * 60;
-                emit lockActivated();
-                setState(Locked);
-            }
-        } else if (m_state == Locked) {
             emit tickSecond(m_remainingSeconds);
             if (m_remainingSeconds == 0) {
-                setState(Idle);
-                emit finished();
                 m_timer->stop();
+                m_remainingSeconds = 0;
+                setState(Locked);
+                emit lockActivated();
             }
         } else if (m_state == LockedOut) {
             if (m_remainingSeconds == 0) {
@@ -75,10 +68,6 @@ void CountdownEngine::onTick() {
             }
         }
     } else if (m_remainingSeconds <= 0) {
-        if (m_state == Locked) {
-            setState(Idle);
-            emit finished();
-        }
         m_timer->stop();
     }
 }
@@ -102,10 +91,12 @@ void CountdownEngine::triggerLockedOut(int seconds) {
     m_remainingSeconds = seconds;
     setState(LockedOut);
     emit lockedOut(seconds);
+    m_timer->start(1000);
 }
 
 void CountdownEngine::endLockout() {
     setState(Locked);
+    m_timer->stop();
 }
 
 void CountdownEngine::setState(State s) {
