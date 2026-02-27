@@ -56,10 +56,9 @@ LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
             return CallNextHookEx(NULL, nCode, wParam, lParam);
         }
 
-        if (wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN || wParam == WM_MBUTTONDOWN || 
-            wParam == WM_LBUTTONDBLCLK || wParam == WM_RBUTTONDBLCLK) {
-            return 1; // 锁定模式下，彻底拦截点击
-        }
+        // 核心修改：锁定模式下不再拦截鼠标点击，
+        // 允许用户点击遮罩上的输入框。
+        // 系统快捷键（键盘钩子）依然被拦截，置顶守护依然运行。
     }
     return CallNextHookEx(NULL, nCode, wParam, lParam);
 }

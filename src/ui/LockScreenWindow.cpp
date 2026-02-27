@@ -1,12 +1,16 @@
 #include "LockScreenWindow.h"
 #include "../utils/SvgIcon.h"
 #include "../core/CountdownEngine.h"
+#include "../core/ConfigManager.h"
 #include "../system/SystemHookManager.h"
 #include <QPainter>
 #include <QDateTime>
 #include <QScreen>
 #include <QGuiApplication>
 #include <QCloseEvent>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QPropertyAnimation>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -44,6 +48,39 @@ LockScreenWindow::LockScreenWindow(const QRect& geometry, bool isMain, QWidget *
 
     m_warningTimer = new QTimer(this);
     connect(m_warningTimer, &QTimer::timeout, this, &LockScreenWindow::fadeOutWarning);
+
+    if (m_isMain) {
+        setupUnlockUi();
+    }
+}
+
+void LockScreenWindow::setupUnlockUi() {
+    m_unlockWidget = new QWidget(this);
+    m_unlockWidget->setFixedSize(300, 150);
+    m_unlockWidget->setStyleSheet("background: transparent;");
+
+    QVBoxLayout *layout = new QVBoxLayout(m_unlockWidget);
+
+    m_passwordEdit = new QLineEdit(this);
+    m_passwordEdit->setEchoMode(QLineEdit::Password);
+    m_passwordEdit->setPlaceholderText("输入解锁密码");
+    m_passwordEdit->setStyleSheet("padding: 10px; border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 8px; background: rgba(0, 0, 0, 100); color: white; font-size: 16px;");
+
+    m_statusLabel = new QLabel(this);
+    m_statusLabel->setAlignment(Qt::AlignCenter);
+    m_statusLabel->setStyleSheet("color: #ff5555; font-size: 14px; font-weight: bold;");
+
+    layout->addStretch();
+    layout->addWidget(m_passwordEdit);
+    layout->addWidget(m_statusLabel);
+    layout->addStretch();
+
+    m_unlockWidget->hide();
+
+    connect(m_passwordEdit, &QLineEdit::returnPressed, this, &LockScreenWindow::attemptUnlock);
+
+    m_lockoutTimer = new QTimer(this);
+    connect(m_lockoutTimer, &QTimer::timeout, this, &LockScreenWindow::updateLockout);
 }
 
 void LockScreenWindow::setLockMode(bool locked) {
@@ -57,8 +94,72 @@ void LockScreenWindow::setLockMode(bool locked) {
         SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) & ~WS_EX_TRANSPARENT);
 #endif
         applyAcrylic();
+
+        if (m_isMain && m_unlockWidget) {
+            m_unlockWidget->show();
+            m_unlockWidget->move((width() - m_unlockWidget->width()) / 2, height() / 2 + 100);
+            m_passwordEdit->setFocus();
+        }
+    } else {
+        if (m_unlockWidget) m_unlockWidget->hide();
     }
     update();
+}
+
+void LockScreenWindow::attemptUnlock() {
+    if (m_lockoutTime > 0) return;
+
+    QString raw = m_passwordEdit->text();
+    AppConfig config = ConfigManager::instance().getConfig();
+
+    if (ConfigManager::verifyPassword(raw, config.passwordHash)) {
+        CountdownEngine::instance().reportUnlockAttempt(true);
+    } else {
+        CountdownEngine::instance().reportUnlockAttempt(false);
+        m_attempts++;
+        m_passwordEdit->clear();
+
+        // 抖动动画
+        QPropertyAnimation *animation = new QPropertyAnimation(m_passwordEdit, "pos");
+        animation->setDuration(300);
+        QPoint origPos = m_passwordEdit->pos();
+        animation->setStartValue(origPos);
+        animation->setKeyValueAt(0.125, origPos + QPoint(8, 0));
+        animation->setKeyValueAt(0.25, origPos + QPoint(-8, 0));
+        animation->setKeyValueAt(0.375, origPos + QPoint(6, 0));
+        animation->setKeyValueAt(0.5, origPos + QPoint(-6, 0));
+        animation->setKeyValueAt(0.625, origPos + QPoint(4, 0));
+        animation->setKeyValueAt(0.75, origPos + QPoint(-4, 0));
+        animation->setEndValue(origPos);
+        animation->start(QAbstractAnimation::DeleteWhenStopped);
+
+        if (m_attempts >= config.maxPasswordAttempts) {
+            m_lockoutTime = config.lockoutDurationSecs;
+            m_passwordEdit->setEnabled(false);
+            m_lockoutTimer->start(1000);
+            CountdownEngine::instance().triggerLockedOut(m_lockoutTime);
+            updateLockout();
+        } else {
+            m_statusLabel->setText(QString("密码错误，还剩 %1 次机会").arg(config.maxPasswordAttempts - m_attempts));
+        }
+    }
+}
+
+void LockScreenWindow::togglePasswordVisible() {
+    // 简化：目前直接附在遮罩上，暂时不放切换按钮，保持界面简洁
+}
+
+void LockScreenWindow::updateLockout() {
+    if (m_lockoutTime > 0) {
+        m_statusLabel->setText(QString("尝试次数过多，请等待 %1 秒").arg(m_lockoutTime));
+        m_lockoutTime--;
+    } else {
+        m_lockoutTimer->stop();
+        m_passwordEdit->setEnabled(true);
+        m_passwordEdit->setFocus();
+        m_statusLabel->clear();
+        m_attempts = 0;
+    }
 }
 
 void LockScreenWindow::setClockPaused(bool paused) {

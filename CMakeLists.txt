@@ -31,7 +31,6 @@ set(SOURCES
     src/ui/SetupDialog.h src/ui/SetupDialog.cpp
     src/ui/SettingsPanel.h src/ui/SettingsPanel.cpp
     src/ui/LockScreenWindow.h src/ui/LockScreenWindow.cpp
-    src/ui/UnlockDialog.h src/ui/UnlockDialog.cpp
     src/ui/TrayManager.h src/ui/TrayManager.cpp
     src/ui/PreLockNotification.h src/ui/PreLockNotification.cpp
     # utils

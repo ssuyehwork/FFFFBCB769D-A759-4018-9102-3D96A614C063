@@ -13,7 +13,6 @@
 #include "system/PowerManager.h"
 #include "ui/SetupDialog.h"
 #include "ui/LockScreenWindow.h"
-#include "ui/UnlockDialog.h"
 #include "ui/TrayManager.h"
 #include "ui/PreLockNotification.h"
 #include <QToolTip>
@@ -30,7 +29,7 @@ public:
 #endif
         m_tray = new TrayManager(this);
         connect(m_tray, &TrayManager::exitRequested, this, &AppController::handleExit);
-        connect(m_tray, &TrayManager::unlockRequested, this, &AppController::showUnlockDialog);
+        connect(m_tray, &TrayManager::unlockRequested, this, &AppController::handleImmediateLock); // 托盘紧急解锁改为直接触发(如果未锁)或由遮罩处理
 
         connect(&CountdownEngine::instance(), &CountdownEngine::tickSecond, m_tray, &TrayManager::updateRemainingTime);
         connect(&CountdownEngine::instance(), &CountdownEngine::tickSecond, this, &AppController::handleTick);
@@ -39,7 +38,7 @@ public:
         connect(&CountdownEngine::instance(), &CountdownEngine::lockActivated, this, &AppController::activateLock);
         connect(&CountdownEngine::instance(), &CountdownEngine::finished, this, &AppController::handleUnlock);
         
-        connect(&SystemHookManager::instance(), &SystemHookManager::escPressed, this, &AppController::showUnlockDialog);
+        // 移除 Esc 触发对话框的全局连接，改为遮罩内部处理
         connect(&SystemHookManager::instance(), &SystemHookManager::mouseTouched, this, &AppController::handleMouseTouch);
     }
 
@@ -118,6 +117,8 @@ private slots:
                 PowerManager::preventSleepAndScreenOff();
             }
             // 进入锁定：切换钩子为阻塞模式
+            // 注意：现在解锁框在遮罩上，钩子需要允许基本输入，
+            // 实际上 s_isBlocking 应该拦截系统快捷键，但允许字符输入
             SystemHookManager::instance().setBlocking(true);
             for (auto w : m_lockWindows) {
                 w->setLockMode(true);
@@ -126,54 +127,7 @@ private slots:
     }
 
     void showUnlockDialog() {
-        if (m_lockWindows.isEmpty() || m_isUnlockDialogOpen) return;
-
-        m_isUnlockDialogOpen = true;
-        CountdownEngine::instance().enterUnlocking();
-        
-        // 1. 暂时解除阻塞，允许用户输入密码
-        SystemHookManager::instance().setBlocking(false);
-        TopMostGuard::instance().setFocusStealingEnabled(false);
-        
-        // 关键修复：降低遮罩窗口层级，确保解锁对话框绝对可见
-        for (auto w : m_lockWindows) {
-            w->setClockPaused(true);
-#ifdef Q_OS_WIN
-            HWND hwnd = reinterpret_cast<HWND>(w->winId());
-            SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-#endif
-        }
-
-        UnlockDialog dlg;
-
-        // 改进：将解锁对话框移动到当前鼠标所在的屏幕中心
-        QScreen *currentScreen = QGuiApplication::screenAt(QCursor::pos());
-        if (!currentScreen) currentScreen = QGuiApplication::primaryScreen();
-        QRect screenGeometry = currentScreen->geometry();
-        dlg.move(screenGeometry.center() - dlg.rect().center());
-
-        // 强制置顶解锁对话框，确保它在所有遮罩之上
-#ifdef Q_OS_WIN
-        HWND hwndDlg = reinterpret_cast<HWND>(dlg.winId());
-        SetWindowPos(hwndDlg, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-#endif
-
-        connect(&dlg, &UnlockDialog::unlockSucceeded, this, &AppController::handleUnlock);
-        
-        // 如果用户关闭了对话框但未解锁
-        if (dlg.exec() != QDialog::Accepted) {
-            // 2. 恢复锁定拦截
-            SystemHookManager::instance().setBlocking(true);
-            for (auto w : m_lockWindows) {
-                w->setClockPaused(false);
-#ifdef Q_OS_WIN
-                HWND hwnd = reinterpret_cast<HWND>(w->winId());
-                SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-#endif
-            }
-            TopMostGuard::instance().setFocusStealingEnabled(true);
-            m_isUnlockDialogOpen = false;
-        }
+        // 解锁界面现在已整合到遮罩窗口中
     }
 
     void handleUnlock() {
