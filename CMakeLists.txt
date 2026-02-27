@@ -35,6 +35,8 @@ set(SOURCES
     src/ui/PreLockNotification.h src/ui/PreLockNotification.cpp
     # utils
     src/utils/SvgIcon.h src/utils/SvgIcon.cpp
+    # resources
+    resources/app_icon.rc
 )
 
 # 定义可执行文件（Windows GUI 程序）
