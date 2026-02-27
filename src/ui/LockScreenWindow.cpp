@@ -143,9 +143,10 @@ void LockScreenWindow::paintEvent(QPaintEvent *event) {
         QPixmap warn = SvgIcon::get(SvgIcon::Warning, QSize(32, 32), Qt::yellow);
         painter.drawPixmap(20, height() - 52, warn);
         
-        font.setPixelSize(18);
-        font.setBold(false);
-        painter.setFont(font);
+        QFont warnFont = painter.font();
+        warnFont.setPixelSize(18);
+        warnFont.setBold(false);
+        painter.setFont(warnFont);
         painter.setPen(Qt::yellow);
         painter.drawText(60, height() - 30, "请勿操作，电脑已锁定");
         painter.setOpacity(1.0);
