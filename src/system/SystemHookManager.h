@@ -6,6 +6,7 @@
 
 #ifdef Q_OS_WIN
 #include <windows.h>
+#include <atomic>
 #endif
 
 class HookThread : public QThread {
@@ -36,6 +37,7 @@ public:
 
     void startHook();
     void stopHook();
+    void setBlocking(bool blocking);
 
 signals:
     void dangerousKeyCombinationDetected();
@@ -44,6 +46,9 @@ signals:
 
 private:
     HookThread *m_hookThread = nullptr;
+    static std::atomic<bool> s_isBlocking;
+    friend LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
+    friend LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam);
 };
 
 #endif // SYSTEMHOOKMANAGER_H

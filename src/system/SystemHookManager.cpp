@@ -6,31 +6,35 @@
 HHOOK hKeyHook = NULL;
 HHOOK hMouseHook = NULL;
 HookThread* g_hookThread = nullptr;
+std::atomic<bool> SystemHookManager::s_isBlocking{false};
 
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode == HC_ACTION) {
         KBDLLHOOKSTRUCT *p = (KBDLLHOOKSTRUCT *)lParam;
-        bool block = false;
 
+        // 始终监听 Esc 信号，用于唤起解锁对话框
+        if (p->vkCode == VK_ESCAPE && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)) {
+             if (g_hookThread) emit g_hookThread->keyPressed(VK_ESCAPE);
+        }
+
+        // 如果当前处于非阻塞模式（如预警期或解锁对话框开启时），直接放行
+        if (!SystemHookManager::s_isBlocking) {
+            return CallNextHookEx(NULL, nCode, wParam, lParam);
+        }
+
+        bool block = false;
         // 拦截 Win 键
         if (p->vkCode == VK_LWIN || p->vkCode == VK_RWIN) block = true;
-        
         // 拦截 Alt+Tab, Alt+F4, Alt+Esc
         if (GetAsyncKeyState(VK_MENU) & 0x8000) {
             if (p->vkCode == VK_TAB || p->vkCode == VK_F4 || p->vkCode == VK_ESCAPE) block = true;
         }
-
         // 拦截 Ctrl+Esc
         if (GetAsyncKeyState(VK_CONTROL) & 0x8000) {
             if (p->vkCode == VK_ESCAPE) block = true;
         }
-        
         // 拦截 PrintScreen
         if (p->vkCode == VK_SNAPSHOT) block = true;
-
-        if (p->vkCode == VK_ESCAPE && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)) {
-             if (g_hookThread) emit g_hookThread->keyPressed(VK_ESCAPE);
-        }
 
         if (block) return 1;
     }
@@ -39,13 +43,21 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
 LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode == HC_ACTION) {
+        // 始终统计触碰次数
+        if (g_hookThread) {
+            if (wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN || wParam == WM_MOUSEMOVE) {
+                emit g_hookThread->mouseTouched();
+            }
+        }
+
+        // 如果处于非阻塞模式，放行鼠标点击
+        if (!SystemHookManager::s_isBlocking) {
+            return CallNextHookEx(NULL, nCode, wParam, lParam);
+        }
+
         if (wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN || wParam == WM_MBUTTONDOWN || 
             wParam == WM_LBUTTONDBLCLK || wParam == WM_RBUTTONDBLCLK) {
-            if (g_hookThread) emit g_hookThread->mouseTouched();
-            return 1; // 彻底拦截点击事件
-        }
-        if (wParam == WM_MOUSEMOVE) {
-            if (g_hookThread) emit g_hookThread->mouseTouched();
+            return 1; // 锁定模式下，彻底拦截点击
         }
     }
     return CallNextHookEx(NULL, nCode, wParam, lParam);
@@ -95,10 +107,16 @@ void SystemHookManager::startHook() {
 void SystemHookManager::stopHook() {
 #ifdef Q_OS_WIN
     if (m_hookThread) {
+        s_isBlocking = false;
         PostThreadMessage(m_hookThread->winThreadId(), WM_QUIT, 0, 0);
-        m_hookThread->wait();
+        m_hookThread->wait(1000); // 增加超时保护，防止死锁
+        if (m_hookThread->isRunning()) m_hookThread->terminate();
         delete m_hookThread;
         m_hookThread = nullptr;
     }
 #endif
+}
+
+void SystemHookManager::setBlocking(bool blocking) {
+    s_isBlocking = blocking;
 }

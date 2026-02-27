@@ -166,6 +166,15 @@ void LockScreenWindow::closeEvent(QCloseEvent *event) {
     event->ignore();
 }
 
+void LockScreenWindow::keyPressEvent(QKeyEvent *event) {
+    if (event->key() == Qt::Key_Escape) {
+        // 兜底逻辑：如果系统钩子没接管到 Esc，通过窗口事件再次触发信号
+        emit SystemHookManager::instance().escPressed();
+    } else {
+        QWidget::keyPressEvent(event);
+    }
+}
+
 void LockScreenWindow::showTouchWarning() {
     m_showWarning = true;
     m_warningOpacity = 1.0f;

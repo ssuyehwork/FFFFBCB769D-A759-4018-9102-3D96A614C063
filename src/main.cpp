@@ -43,6 +43,7 @@ public:
 
     void start() {
         m_tray->setVisible(true);
+        SystemHookManager::instance().startHook(); // 启动常驻钩子，默认不阻塞
         showSetup();
     }
 
@@ -102,7 +103,8 @@ private slots:
             if (ConfigManager::instance().getConfig().preventSleep) {
                 PowerManager::preventSleepAndScreenOff();
             }
-            SystemHookManager::instance().startHook();
+            // 进入锁定：切换钩子为阻塞模式
+            SystemHookManager::instance().setBlocking(true);
             for (auto w : m_lockWindows) {
                 w->setLockMode(true);
             }
@@ -114,12 +116,10 @@ private slots:
 
         m_isUnlockDialogOpen = true;
         
-        // 1. 暂停干扰源
+        // 1. 暂时解除阻塞，允许用户输入密码
+        SystemHookManager::instance().setBlocking(false);
         TopMostGuard::instance().setFocusStealingEnabled(false);
         for (auto w : m_lockWindows) w->setClockPaused(true);
-        
-        // 2. 暂停系统钩子，允许用户与 UnlockDialog 交互
-        SystemHookManager::instance().stopHook();
 
         UnlockDialog dlg;
 
@@ -129,12 +129,18 @@ private slots:
         QRect screenGeometry = currentScreen->geometry();
         dlg.move(screenGeometry.center() - dlg.rect().center());
 
+        // 强制置顶解锁对话框，确保它在所有遮罩之上
+#ifdef Q_OS_WIN
+        HWND hwndDlg = reinterpret_cast<HWND>(dlg.winId());
+        SetWindowPos(hwndDlg, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+#endif
+
         connect(&dlg, &UnlockDialog::unlockSucceeded, this, &AppController::handleUnlock);
         
-        // 如果用户关闭了对话框但未解锁（如点击了对话框外的取消，尽管我们设了置顶）
+        // 如果用户关闭了对话框但未解锁
         if (dlg.exec() != QDialog::Accepted) {
-            // 3. 恢复锁定状态
-            SystemHookManager::instance().startHook();
+            // 2. 恢复锁定拦截
+            SystemHookManager::instance().setBlocking(true);
             for (auto w : m_lockWindows) w->setClockPaused(false);
             TopMostGuard::instance().setFocusStealingEnabled(true);
             m_isUnlockDialogOpen = false;
