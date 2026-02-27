@@ -1,5 +1,6 @@
 #include "PreLockNotification.h"
 #include "../utils/SvgIcon.h"
+#include "../core/ConfigManager.h"
 #include <QPainter>
 #include <QScreen>
 #include <QGuiApplication>
