@@ -69,7 +69,22 @@ void LockScreenWindow::setupUnlockUi() {
     m_passwordEdit = new QLineEdit(this);
     m_passwordEdit->setEchoMode(QLineEdit::Password);
     m_passwordEdit->setPlaceholderText("输入解锁密码");
-    m_passwordEdit->setStyleSheet("padding: 10px; border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 8px; background: rgba(0, 0, 0, 100); color: white; font-size: 16px;");
+    // 优化：使用更平滑的边框渲染，消除圆角抗锯齿瑕疵，增强深色模式视觉效果
+    m_passwordEdit->setStyleSheet(
+        "QLineEdit {"
+        "  padding: 10px;"
+        "  border: 1px solid rgba(255, 255, 255, 40);"
+        "  border-radius: 10px;"
+        "  background: rgba(30, 30, 30, 180);"
+        "  color: white;"
+        "  font-size: 16px;"
+        "  selection-background-color: rgba(255, 255, 255, 60);"
+        "}"
+        "QLineEdit:focus {"
+        "  border: 1px solid rgba(255, 255, 255, 100);"
+        "  background: rgba(40, 40, 40, 200);"
+        "}"
+    );
 
     m_statusLabel = new QLabel(this);
     m_statusLabel->setAlignment(Qt::AlignCenter);
