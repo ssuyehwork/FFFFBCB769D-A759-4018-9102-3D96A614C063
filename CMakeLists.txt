@@ -5,8 +5,12 @@ project(FocusLock VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 确保使用 UTF-16
-add_compile_options(/utf-8)
+# 确保字符集处理正确
+if(MSVC)
+    add_compile_options(/utf-8)
+else()
+    add_compile_options(-finput-charset=UTF-8 -fexec-charset=UTF-8)
+endif()
 
 # 资源文件和清单文件
 set(RESOURCE_FILES
@@ -49,19 +53,19 @@ add_executable(FocusLock WIN32
     ${RESOURCE_FILES}
 )
 
-# 链接库
+# 链接库 (移除 .lib 后缀以提高跨编译器兼容性)
 target_link_libraries(FocusLock PRIVATE
-    user32.lib
-    gdi32.lib
-    gdiplus.lib
-    shell32.lib
-    advapi32.lib
-    dwmapi.lib
-    ole32.lib
-    comctl32.lib
-    winmm.lib
-    bcrypt.lib
-    crypt32.lib
+    user32
+    gdi32
+    gdiplus
+    shell32
+    advapi32
+    dwmapi
+    ole32
+    comctl32
+    winmm
+    bcrypt
+    crypt32
 )
 
 # 设置清单文件属性（针对 MSVC）

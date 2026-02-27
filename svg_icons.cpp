@@ -2,6 +2,7 @@
 #include <vector>
 #include <cwchar>
 #include <cmath>
+#include <algorithm>
 
 Gdiplus::GraphicsPath* ParseSvgPath(const wchar_t* svgPathD) {
     Gdiplus::GraphicsPath* path = new Gdiplus::GraphicsPath();
@@ -85,7 +86,7 @@ HBITMAP RenderSvgIcon(const wchar_t* svgPathD, int width, int height, Gdiplus::C
     path->GetBounds(&bounds);
 
     if (bounds.Width > 0 && bounds.Height > 0) {
-        float scale = min((float)width / bounds.Width, (float)height / bounds.Height) * 0.8f;
+        float scale = std::min((float)width / bounds.Width, (float)height / bounds.Height) * 0.8f;
         Gdiplus::Matrix matrix;
         matrix.Scale(scale, scale);
         matrix.Translate(-bounds.X + (width / scale - bounds.Width) / 2.0f,
