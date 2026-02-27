@@ -246,7 +246,7 @@ void LockScreenWindow::paintEvent(QPaintEvent *event) {
 
     // 2. 锁图标 (仅在正式锁定模式下显示)
     if (m_locked && config.showLockIcon) {
-        QPixmap lock = SvgIcon::get(SvgIcon::Lock, QSize(120, 120), Qt::white);
+        QPixmap lock = SvgIcon::get(SvgIcon::Lock, QSize(120, 120), QColor("#4CAF50"));
         painter.drawPixmap((width() - 120) / 2, (height() - 120) / 2 - 40, lock);
     }
 

@@ -18,7 +18,7 @@ SetupDialog::SetupDialog(QWidget *parent) : QDialog(parent) {
     // Header
     QHBoxLayout *headerLayout = new QHBoxLayout();
     QLabel *iconLabel = new QLabel(this);
-    iconLabel->setPixmap(SvgIcon::get(SvgIcon::Shield, QSize(32, 32), QColor("#0078d7")));
+    iconLabel->setPixmap(SvgIcon::get(SvgIcon::Shield, QSize(32, 32), QColor("#4CAF50")));
     QLabel *titleLabel = new QLabel("倒计时锁屏", this);
     titleLabel->setStyleSheet("font-size: 18px; font-weight: bold;");
     headerLayout->addWidget(iconLabel);

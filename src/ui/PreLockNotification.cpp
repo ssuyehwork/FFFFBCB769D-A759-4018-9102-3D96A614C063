@@ -54,7 +54,7 @@ void PreLockNotification::paintEvent(QPaintEvent *event) {
     painter.fillPath(path, QColor(25, 25, 25, 230));
 
     // 2. 移除多余的顶部标题条背景，直接在左上角绘制图标和文字
-    QPixmap lock = SvgIcon::get(SvgIcon::Lock, QSize(18, 18), Qt::white);
+    QPixmap lock = SvgIcon::get(SvgIcon::Lock, QSize(18, 18), QColor("#4CAF50"));
     painter.drawPixmap(15, 15, lock);
 
     painter.setPen(Qt::white);
