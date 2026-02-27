@@ -44,6 +44,11 @@ signals:
     void mouseTouched();
     void escPressed();
 
+public slots:
+    // 内部转发槽
+    void handleKeyPressed(int vk);
+    void handleMouseTouched();
+
 private:
     HookThread *m_hookThread = nullptr;
     static std::atomic<bool> s_isBlocking;

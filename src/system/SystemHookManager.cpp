@@ -95,13 +95,22 @@ void SystemHookManager::startHook() {
 #ifdef Q_OS_WIN
     if (!m_hookThread) {
         m_hookThread = new HookThread();
-        connect(m_hookThread, &HookThread::keyPressed, this, [this](int vk){
-            if (vk == VK_ESCAPE) emit escPressed();
-        });
-        connect(m_hookThread, &HookThread::mouseTouched, this, &SystemHookManager::mouseTouched);
+        // 修改：使用槽函数进行转发，避免信号路径混乱
+        connect(m_hookThread, &HookThread::keyPressed, this, &SystemHookManager::handleKeyPressed);
+        connect(m_hookThread, &HookThread::mouseTouched, this, &SystemHookManager::handleMouseTouched);
         m_hookThread->start();
     }
 #endif
+}
+
+void SystemHookManager::handleKeyPressed(int vk) {
+    if (vk == VK_ESCAPE) {
+        emit escPressed();
+    }
+}
+
+void SystemHookManager::handleMouseTouched() {
+    emit mouseTouched();
 }
 
 void SystemHookManager::stopHook() {

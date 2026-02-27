@@ -112,14 +112,14 @@ void LockScreenWindow::paintEvent(QPaintEvent *event) {
         }
     }
 
-    // 2. 锁图标 (预警期和锁定模式均显示)
-    if (config.showLockIcon && (m_locked || remaining <= 20)) {
+    // 2. 锁图标 (仅在正式锁定模式下显示)
+    if (m_locked && config.showLockIcon) {
         QPixmap lock = SvgIcon::get(SvgIcon::Lock, QSize(120, 120), Qt::white);
         painter.drawPixmap((width() - 120) / 2, (height() - 120) / 2 - 40, lock);
     }
 
-    // 3. 自定义文字 (预警期和锁定模式均显示)
-    if (m_locked || remaining <= 20) {
+    // 3. 自定义文字 (仅在正式锁定模式下显示)
+    if (m_locked) {
         painter.setPen(Qt::white);
         QFont font = painter.font();
         font.setPixelSize(24);

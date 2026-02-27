@@ -119,7 +119,15 @@ private slots:
         // 1. 暂时解除阻塞，允许用户输入密码
         SystemHookManager::instance().setBlocking(false);
         TopMostGuard::instance().setFocusStealingEnabled(false);
-        for (auto w : m_lockWindows) w->setClockPaused(true);
+
+        // 关键修复：降低遮罩窗口层级，确保解锁对话框绝对可见
+        for (auto w : m_lockWindows) {
+            w->setClockPaused(true);
+#ifdef Q_OS_WIN
+            HWND hwnd = reinterpret_cast<HWND>(w->winId());
+            SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+#endif
+        }
 
         UnlockDialog dlg;
 
@@ -141,7 +149,13 @@ private slots:
         if (dlg.exec() != QDialog::Accepted) {
             // 2. 恢复锁定拦截
             SystemHookManager::instance().setBlocking(true);
-            for (auto w : m_lockWindows) w->setClockPaused(false);
+            for (auto w : m_lockWindows) {
+                w->setClockPaused(false);
+#ifdef Q_OS_WIN
+                HWND hwnd = reinterpret_cast<HWND>(w->winId());
+                SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+#endif
+            }
             TopMostGuard::instance().setFocusStealingEnabled(true);
             m_isUnlockDialogOpen = false;
         }
