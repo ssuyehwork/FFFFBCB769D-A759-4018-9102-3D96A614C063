@@ -16,6 +16,7 @@ public:
     void stopGuard();
     void addWindow(QWidget* window);
     void clearWindows();
+    void setFocusStealingEnabled(bool enabled);
 
 private slots:
     void onGuardTick();
@@ -23,6 +24,7 @@ private slots:
 private:
     QTimer *m_timer;
     QList<QWidget*> m_windows;
+    bool m_focusStealingEnabled = true;
 };
 
 #endif // TOPMOSTGUARD_H

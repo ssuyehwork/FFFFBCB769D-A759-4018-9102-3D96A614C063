@@ -39,7 +39,12 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
 LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode == HC_ACTION) {
-        if (wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN || wParam == WM_MOUSEMOVE) {
+        if (wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN || wParam == WM_MBUTTONDOWN ||
+            wParam == WM_LBUTTONDBLCLK || wParam == WM_RBUTTONDBLCLK) {
+            if (g_hookThread) emit g_hookThread->mouseTouched();
+            return 1; // 彻底拦截点击事件
+        }
+        if (wParam == WM_MOUSEMOVE) {
             if (g_hookThread) emit g_hookThread->mouseTouched();
         }
     }

@@ -33,6 +33,7 @@ LockScreenWindow::LockScreenWindow(const QRect& geometry, bool isMain, QWidget *
     setGeometry(geometry);
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
     setAttribute(Qt::WA_TranslucentBackground);
+    setAttribute(Qt::WA_TransparentForMouseEvents);
     setProperty("isMainScreen", isMain);
 
     m_clockTimer = new QTimer(this);
@@ -43,7 +44,17 @@ LockScreenWindow::LockScreenWindow(const QRect& geometry, bool isMain, QWidget *
     connect(m_warningTimer, &QTimer::timeout, this, &LockScreenWindow::fadeOutWarning);
 }
 
+void LockScreenWindow::setLockMode(bool locked) {
+    m_locked = locked;
+    if (m_locked) {
+        setAttribute(Qt::WA_TransparentForMouseEvents, false);
+        applyAcrylic();
+    }
+    update();
+}
+
 void LockScreenWindow::applyAcrylic() {
+    if (!m_locked) return;
 #ifdef Q_OS_WIN
     HWND hwnd = reinterpret_cast<HWND>(winId());
     HMODULE hUser = GetModuleHandleW(L"user32.dll");
@@ -72,6 +83,19 @@ void LockScreenWindow::paintEvent(QPaintEvent *event) {
     painter.setRenderHint(QPainter::Antialiasing);
 
     AppConfig config = ConfigManager::instance().getConfig();
+
+    if (!m_locked) {
+        // 预警阶段：仅绘制倒计时大数字
+        if (CountdownEngine::instance().remainingSeconds() <= 20) {
+            painter.setPen(Qt::red);
+            QFont font = painter.font();
+            font.setPixelSize(120);
+            font.setBold(true);
+            painter.setFont(font);
+            painter.drawText(rect(), Qt::AlignCenter, QString::number(CountdownEngine::instance().remainingSeconds()));
+        }
+        return;
+    }
 
     // 1. 背景图 (如果有)
     if (!config.backgroundImagePath.isEmpty()) {

@@ -33,6 +33,10 @@ void TopMostGuard::clearWindows() {
     m_windows.clear();
 }
 
+void TopMostGuard::setFocusStealingEnabled(bool enabled) {
+    m_focusStealingEnabled = enabled;
+}
+
 void TopMostGuard::onGuardTick() {
 #ifdef Q_OS_WIN
     for (QWidget* w : m_windows) {
@@ -42,9 +46,8 @@ void TopMostGuard::onGuardTick() {
             // 确保窗口在最顶层
             SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
             
-            // 如果不是前台窗口，且我们想要它是（主屏窗口），则抢回焦点
-            // 注意：副屏窗口不需要抢焦点，否则会干扰输入
-            if (w->property("isMainScreen").toBool()) {
+            // 如果开启了抢焦点逻辑，且不是前台窗口，且是主屏窗口，则抢回焦点
+            if (m_focusStealingEnabled && w->property("isMainScreen").toBool()) {
                 if (GetForegroundWindow() != hwnd) {
                     SetForegroundWindow(hwnd);
                 }

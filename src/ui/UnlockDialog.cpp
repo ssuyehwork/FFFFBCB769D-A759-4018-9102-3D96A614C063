@@ -21,12 +21,12 @@ UnlockDialog::UnlockDialog(QWidget *parent) : QDialog(parent) {
     m_passwordEdit = new QLineEdit(this);
     m_passwordEdit->setEchoMode(QLineEdit::Password);
     m_passwordEdit->setPlaceholderText("输入解锁密码");
-    m_passwordEdit->setStyleSheet("padding: 8px; border: 1px solid #555; border-top-left-radius: 4px; border-bottom-left-radius: 4px; background: #222;");
+    m_passwordEdit->setStyleSheet("padding: 8px; border: 1px solid #555; border-right: none; border-top-left-radius: 4px; border-bottom-left-radius: 4px; background: #222;");
 
     m_togglePassBtn = new QPushButton(this);
     m_togglePassBtn->setFixedSize(34, 34);
     m_togglePassBtn->setIcon(QIcon(SvgIcon::get(SvgIcon::Eye, QSize(20, 20), Qt::gray)));
-    m_togglePassBtn->setStyleSheet("background: #222; border: 1px solid #555; border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px;");
+    m_togglePassBtn->setStyleSheet("background: #222; border: 1px solid #555; border-left: none; border-top-right-radius: 4px; border-bottom-right-radius: 4px; margin-left: 0px;");
     connect(m_togglePassBtn, &QPushButton::clicked, this, &UnlockDialog::togglePasswordVisible);
 
     passLayout->addWidget(m_passwordEdit);

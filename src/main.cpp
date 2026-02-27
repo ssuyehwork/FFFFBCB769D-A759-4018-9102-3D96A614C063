@@ -21,6 +21,7 @@ public:
         connect(m_tray, &TrayManager::unlockRequested, this, &AppController::showUnlockDialog);
 
         connect(&CountdownEngine::instance(), &CountdownEngine::tickSecond, m_tray, &TrayManager::updateRemainingTime);
+        connect(&CountdownEngine::instance(), &CountdownEngine::warningPhaseStarted, this, &AppController::activateLock);
         connect(&CountdownEngine::instance(), &CountdownEngine::lockActivated, this, &AppController::activateLock);
         
         connect(&SystemHookManager::instance(), &SystemHookManager::escPressed, this, &AppController::showUnlockDialog);
@@ -46,29 +47,36 @@ private slots:
     }
 
     void activateLock() {
-        if (ConfigManager::instance().getConfig().preventSleep) {
-            PowerManager::preventSleepAndScreenOff();
+        if (m_lockWindows.isEmpty()) {
+            for (QScreen* screen : QGuiApplication::screens()) {
+                bool isMain = (screen == QGuiApplication::primaryScreen());
+                LockScreenWindow* w = new LockScreenWindow(screen->geometry(), isMain);
+                w->show();
+                m_lockWindows.append(w);
+                TopMostGuard::instance().addWindow(w);
+            }
+            TopMostGuard::instance().startGuard();
         }
 
-        SystemHookManager::instance().startHook();
-        
-        for (QScreen* screen : QGuiApplication::screens()) {
-            bool isMain = (screen == QGuiApplication::primaryScreen());
-            LockScreenWindow* w = new LockScreenWindow(screen->geometry(), isMain);
-            w->show();
-            m_lockWindows.append(w);
-            TopMostGuard::instance().addWindow(w);
+        if (CountdownEngine::instance().state() == CountdownEngine::Locked) {
+            if (ConfigManager::instance().getConfig().preventSleep) {
+                PowerManager::preventSleepAndScreenOff();
+            }
+            SystemHookManager::instance().startHook();
+            for (auto w : m_lockWindows) {
+                w->setLockMode(true);
+            }
         }
-        
-        TopMostGuard::instance().startGuard();
     }
 
     void showUnlockDialog() {
         if (m_lockWindows.isEmpty()) return;
 
+        TopMostGuard::instance().setFocusStealingEnabled(false);
         UnlockDialog dlg;
         connect(&dlg, &UnlockDialog::unlockSucceeded, this, &AppController::handleUnlock);
         dlg.exec();
+        TopMostGuard::instance().setFocusStealingEnabled(true);
     }
 
     void handleUnlock() {

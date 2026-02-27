@@ -20,11 +20,13 @@ public slots:
     void updateClock();
     void fadeOutWarning();
     void showTouchWarning();
+    void setLockMode(bool locked);
 
 private:
     void applyAcrylic();
 
     bool m_isMain;
+    bool m_locked = false;
     QTimer *m_clockTimer;
     QTimer *m_warningTimer;
     bool m_showWarning = false;
