@@ -17,7 +17,6 @@ protected:
     void showEvent(QShowEvent *event) override;
 
 public slots:
-    void updateClock();
     void fadeOutWarning();
     void showTouchWarning();
     void setLockMode(bool locked);
@@ -28,7 +27,6 @@ private:
 
     bool m_isMain;
     bool m_locked = false;
-    QTimer *m_clockTimer;
     QTimer *m_warningTimer;
     bool m_showWarning = false;
     float m_warningOpacity = 0.0f;

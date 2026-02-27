@@ -36,10 +36,6 @@ LockScreenWindow::LockScreenWindow(const QRect& geometry, bool isMain, QWidget *
     setAttribute(Qt::WA_TransparentForMouseEvents);
     setProperty("isMainScreen", isMain);
 
-    m_clockTimer = new QTimer(this);
-    connect(m_clockTimer, &QTimer::timeout, this, QOverload<>::of(&LockScreenWindow::update));
-    m_clockTimer->start(1000);
-
     m_warningTimer = new QTimer(this);
     connect(m_warningTimer, &QTimer::timeout, this, &LockScreenWindow::fadeOutWarning);
 }
@@ -55,8 +51,7 @@ void LockScreenWindow::setLockMode(bool locked) {
 }
 
 void LockScreenWindow::setClockPaused(bool paused) {
-    if (paused) m_clockTimer->stop();
-    else m_clockTimer->start(1000);
+    Q_UNUSED(paused);
 }
 
 void LockScreenWindow::applyAcrylic() {
@@ -155,10 +150,6 @@ void LockScreenWindow::paintEvent(QPaintEvent *event) {
 
 void LockScreenWindow::closeEvent(QCloseEvent *event) {
     event->ignore();
-}
-
-void LockScreenWindow::updateClock() {
-    update();
 }
 
 void LockScreenWindow::showTouchWarning() {

@@ -31,6 +31,9 @@ public:
         connect(m_tray, &TrayManager::unlockRequested, this, &AppController::showUnlockDialog);
 
         connect(&CountdownEngine::instance(), &CountdownEngine::tickSecond, m_tray, &TrayManager::updateRemainingTime);
+        connect(&CountdownEngine::instance(), &CountdownEngine::tickSecond, this, [this]() {
+            for (auto w : m_lockWindows) w->update();
+        });
         connect(&CountdownEngine::instance(), &CountdownEngine::warningPhaseStarted, this, &AppController::activateLock);
         connect(&CountdownEngine::instance(), &CountdownEngine::lockActivated, this, &AppController::activateLock);
         
@@ -113,6 +116,13 @@ private slots:
         SystemHookManager::instance().stopHook();
 
         UnlockDialog dlg;
+
+        // 改进：将解锁对话框移动到当前鼠标所在的屏幕中心
+        QScreen *currentScreen = QGuiApplication::screenAt(QCursor::pos());
+        if (!currentScreen) currentScreen = QGuiApplication::primaryScreen();
+        QRect screenGeometry = currentScreen->geometry();
+        dlg.move(screenGeometry.center() - dlg.rect().center());
+
         connect(&dlg, &UnlockDialog::unlockSucceeded, this, &AppController::handleUnlock);
         
         // 如果用户关闭了对话框但未解锁（如点击了对话框外的取消，尽管我们设了置顶）
@@ -123,7 +133,6 @@ private slots:
             TopMostGuard::instance().setFocusStealingEnabled(true);
             m_isUnlockDialogOpen = false;
         }
-        // 如果 Accepted，handleUnlock 会处理后续清理并退出
     }
 
     void handleUnlock() {
@@ -145,12 +154,25 @@ private slots:
         rec.manualUnlock = true;
         SessionLogger::instance().logSession(rec);
 
-        // 解锁后直接退出程序
-        qApp->quit();
+        // 修复：尊重 "解锁后自动重启" 配置
+        if (ConfigManager::instance().getConfig().autoRestartAfterUnlock) {
+            m_isUnlockDialogOpen = false;
+            showSetup();
+        } else {
+            qApp->quit();
+        }
     }
 
     void handleMouseTouch() {
         m_touchCount++;
+
+        // 性能优化：对 UI 反馈进行节流处理，限制每 200ms 最多触发一次重绘
+        qint64 currentTime = QDateTime::currentMSecsSinceEpoch();
+        if (currentTime - m_lastTouchFeedbackTime < TOUCH_FEEDBACK_THRESHOLD_MS) {
+            return;
+        }
+        m_lastTouchFeedbackTime = currentTime;
+
         for (auto w : m_lockWindows) {
             QMetaObject::invokeMethod(w, "showTouchWarning", Qt::QueuedConnection);
         }
@@ -178,9 +200,11 @@ private slots:
     }
 
 private:
+    static constexpr int TOUCH_FEEDBACK_THRESHOLD_MS = 200;
     TrayManager *m_tray;
     QList<LockScreenWindow*> m_lockWindows;
     QDateTime m_sessionStartTime;
+    qint64 m_lastTouchFeedbackTime = 0;
     int m_touchCount = 0;
     bool m_isUnlockDialogOpen = false;
 };
