@@ -16,9 +16,10 @@ protected:
     void closeEvent(QCloseEvent *event) override;
     void showEvent(QShowEvent *event) override;
 
-private slots:
+public slots:
     void updateClock();
     void fadeOutWarning();
+    void showTouchWarning();
 
 private:
     void applyAcrylic();

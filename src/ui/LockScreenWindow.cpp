@@ -112,7 +112,18 @@ void LockScreenWindow::paintEvent(QPaintEvent *event) {
     }
 
     // 6. 警告提示 (左下角)
-    // 逻辑将在 SystemHookManager 触发时调用
+    if (m_showWarning) {
+        painter.setOpacity(m_warningOpacity);
+        QPixmap warn = SvgIcon::get(SvgIcon::Warning, QSize(32, 32), Qt::yellow);
+        painter.drawPixmap(20, height() - 52, warn);
+
+        font.setPixelSize(18);
+        font.setBold(false);
+        painter.setFont(font);
+        painter.setPen(Qt::yellow);
+        painter.drawText(60, height() - 30, "请勿操作，电脑已锁定");
+        painter.setOpacity(1.0);
+    }
 }
 
 void LockScreenWindow::closeEvent(QCloseEvent *event) {

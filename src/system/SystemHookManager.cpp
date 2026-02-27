@@ -28,8 +28,8 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         // 拦截 PrintScreen
         if (p->vkCode == VK_SNAPSHOT) block = true;
 
-        if (p->vkCode == VK_ESCAPE && wParam == WM_KEYDOWN) {
-             emit g_hookThread->keyPressed(VK_ESCAPE);
+        if (p->vkCode == VK_ESCAPE && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)) {
+             if (g_hookThread) emit g_hookThread->keyPressed(VK_ESCAPE);
         }
 
         if (block) return 1;
@@ -40,7 +40,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode == HC_ACTION) {
         if (wParam == WM_LBUTTONDOWN || wParam == WM_RBUTTONDOWN || wParam == WM_MOUSEMOVE) {
-            emit g_hookThread->mouseTouched();
+            if (g_hookThread) emit g_hookThread->mouseTouched();
         }
     }
     return CallNextHookEx(hMouseHook, nCode, wParam, lParam);
@@ -48,6 +48,7 @@ LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
 void HookThread::run() {
     g_hookThread = this;
+    m_winThreadId = GetCurrentThreadId();
     hKeyHook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, GetModuleHandle(NULL), 0);
     hMouseHook = SetWindowsHookEx(WH_MOUSE_LL, LowLevelMouseProc, GetModuleHandle(NULL), 0);
 
@@ -59,6 +60,8 @@ void HookThread::run() {
 
     UnhookWindowsHookEx(hKeyHook);
     UnhookWindowsHookEx(hMouseHook);
+    hKeyHook = NULL;
+    hMouseHook = NULL;
 }
 #endif
 
@@ -85,7 +88,7 @@ void SystemHookManager::startHook() {
 void SystemHookManager::stopHook() {
 #ifdef Q_OS_WIN
     if (m_hookThread) {
-        PostThreadMessage(GetThreadId((HANDLE)m_hookThread->handle()), WM_QUIT, 0, 0);
+        PostThreadMessage(m_hookThread->winThreadId(), WM_QUIT, 0, 0);
         m_hookThread->wait();
         delete m_hookThread;
         m_hookThread = nullptr;

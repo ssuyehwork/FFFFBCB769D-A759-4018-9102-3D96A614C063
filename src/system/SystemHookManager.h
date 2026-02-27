@@ -4,13 +4,28 @@
 #include <QObject>
 #include <QThread>
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
+
 class HookThread : public QThread {
     Q_OBJECT
+public:
+#ifdef Q_OS_WIN
+    DWORD winThreadId() const { return m_winThreadId; }
+#endif
+
 protected:
     void run() override;
+
 signals:
     void keyPressed(int vkCode);
     void mouseTouched();
+
+private:
+#ifdef Q_OS_WIN
+    DWORD m_winThreadId = 0;
+#endif
 };
 
 class SystemHookManager : public QObject {

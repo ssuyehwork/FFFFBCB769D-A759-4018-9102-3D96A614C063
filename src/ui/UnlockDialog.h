@@ -30,4 +30,3 @@ private:
 };
 
 #endif // UNLOCKDIALOG_H
-#endif
