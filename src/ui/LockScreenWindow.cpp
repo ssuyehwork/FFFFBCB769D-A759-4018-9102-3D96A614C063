@@ -1,6 +1,7 @@
 #include "LockScreenWindow.h"
 #include "../utils/SvgIcon.h"
 #include "../core/CountdownEngine.h"
+#include "../system/SystemHookManager.h"
 #include <QPainter>
 #include <QDateTime>
 #include <QScreen>
