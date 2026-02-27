@@ -15,6 +15,7 @@
 #include "ui/LockScreenWindow.h"
 #include "ui/UnlockDialog.h"
 #include "ui/TrayManager.h"
+#include "ui/PreLockNotification.h"
 #include <QToolTip>
 
 class AppController : public QObject, public QAbstractNativeEventFilter {
@@ -34,6 +35,7 @@ public:
         connect(&CountdownEngine::instance(), &CountdownEngine::tickSecond, m_tray, &TrayManager::updateRemainingTime);
         connect(&CountdownEngine::instance(), &CountdownEngine::tickSecond, this, &AppController::handleTick);
         connect(&CountdownEngine::instance(), &CountdownEngine::warningPhaseStarted, this, &AppController::handleWarning);
+        connect(&CountdownEngine::instance(), &CountdownEngine::warningTick, this, &AppController::handleWarningTick);
         connect(&CountdownEngine::instance(), &CountdownEngine::lockActivated, this, &AppController::activateLock);
         connect(&CountdownEngine::instance(), &CountdownEngine::finished, this, &AppController::handleUnlock);
         
@@ -81,8 +83,20 @@ private slots:
     }
 
     void handleWarning() {
-        // 预警期：创建遮罩窗口，但此时是全透明且穿透点击的，仅用于显示巨大倒计时
-        activateLock();
+        if (!m_preLockNotify) {
+            m_preLockNotify = new PreLockNotification();
+            m_preLockNotify->show();
+        }
+    }
+
+    void handleWarningTick(int remaining) {
+        if (m_preLockNotify) {
+            m_preLockNotify->updateRemaining(remaining);
+            if (remaining == 0) {
+                m_preLockNotify->startFadeOut();
+                m_preLockNotify = nullptr;
+            }
+        }
     }
 
     void activateLock() {
@@ -115,6 +129,7 @@ private slots:
         if (m_lockWindows.isEmpty() || m_isUnlockDialogOpen) return;
 
         m_isUnlockDialogOpen = true;
+        CountdownEngine::instance().enterUnlocking();
         
         // 1. 暂时解除阻塞，允许用户输入密码
         SystemHookManager::instance().setBlocking(false);
@@ -233,6 +248,7 @@ private:
     qint64 m_lastTouchFeedbackTime = 0;
     int m_touchCount = 0;
     bool m_isUnlockDialogOpen = false;
+    PreLockNotification *m_preLockNotify = nullptr;
 };
 
 int main(int argc, char *argv[]) {

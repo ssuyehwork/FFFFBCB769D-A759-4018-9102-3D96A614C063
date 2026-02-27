@@ -10,8 +10,12 @@ public:
     enum State {
         Idle,
         Counting,
-        LastWarning, // 最后20秒
-        Locked        // 触发遮罩
+        PreLockWarning,   // 最后20秒，PreLockNotification显示中
+        Locking,          // 遮罩激活过渡帧
+        Locked,           // 遮罩完全激活
+        Unlocking,        // 解锁验证中
+        LockedOut,        // 密码错误超限，临时封锁解锁入口
+        Unlocked          // 解锁成功，回到Idle前的瞬态
     };
 
     explicit CountdownEngine(QObject *parent = nullptr);
@@ -23,14 +27,24 @@ public:
     void pause();
     void resume();
     
+    // 状态转换接口
+    void enterUnlocking();
+    void reportUnlockAttempt(bool success);
+    void triggerLockedOut(int seconds);
+    void endLockout();
+
     State state() const { return m_state; }
     int remainingSeconds() const { return m_remainingSeconds; }
 
 signals:
     void stateChanged(State newState);
-    void tickSecond(int remainingSeconds);
-    void warningPhaseStarted();
-    void lockActivated();
+    void tickSecond(int remainingSeconds);     // 每秒发射，Counting阶段
+    void warningPhaseStarted();                // 剩余20秒时发射，触发PreLockNotification
+    void warningTick(int remainingSeconds);    // PreLockWarning阶段每秒发射（20→1）
+    void lockActivated();                      // 触发遮罩
+    void unlockSucceeded();
+    void unlockFailed(int attemptsLeft);
+    void lockedOut(int lockoutSeconds);
     void finished();
 
 private slots:

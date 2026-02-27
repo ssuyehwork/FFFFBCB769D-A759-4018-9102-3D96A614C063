@@ -59,21 +59,26 @@ void UnlockDialog::attemptUnlock() {
     AppConfig config = ConfigManager::instance().getConfig();
 
     if (ConfigManager::verifyPassword(raw, config.passwordHash)) {
+        CountdownEngine::instance().reportUnlockAttempt(true);
         emit unlockSucceeded();
         accept();
     } else {
+        CountdownEngine::instance().reportUnlockAttempt(false);
         m_attempts++;
         m_passwordEdit->clear();
         
-        // 抖动动画
-        QPropertyAnimation *animation = new QPropertyAnimation(this, "pos");
-        animation->setDuration(500);
-        animation->setStartValue(pos());
-        animation->setKeyValueAt(0.2, pos() + QPoint(10, 0));
-        animation->setKeyValueAt(0.4, pos() + QPoint(-10, 0));
-        animation->setKeyValueAt(0.6, pos() + QPoint(10, 0));
-        animation->setKeyValueAt(0.8, pos() + QPoint(-10, 0));
-        animation->setEndValue(pos());
+        // 抖动动画 (针对输入框)
+        QPropertyAnimation *animation = new QPropertyAnimation(m_passwordEdit, "pos");
+        animation->setDuration(300);
+        QPoint origPos = m_passwordEdit->pos();
+        animation->setStartValue(origPos);
+        animation->setKeyValueAt(0.125, origPos + QPoint(8, 0));
+        animation->setKeyValueAt(0.25, origPos + QPoint(-8, 0));
+        animation->setKeyValueAt(0.375, origPos + QPoint(6, 0));
+        animation->setKeyValueAt(0.5, origPos + QPoint(-6, 0));
+        animation->setKeyValueAt(0.625, origPos + QPoint(4, 0));
+        animation->setKeyValueAt(0.75, origPos + QPoint(-4, 0));
+        animation->setEndValue(origPos);
         animation->start(QAbstractAnimation::DeleteWhenStopped);
 
         if (m_attempts >= config.maxPasswordAttempts) {
@@ -81,6 +86,7 @@ void UnlockDialog::attemptUnlock() {
             m_unlockBtn->setEnabled(false);
             m_passwordEdit->setEnabled(false);
             m_lockoutTimer->start(1000);
+            CountdownEngine::instance().triggerLockedOut(m_lockoutTime);
             updateLockout();
         } else {
             m_statusLabel->setText(QString("密码错误，还剩 %1 次机会").arg(config.maxPasswordAttempts - m_attempts));

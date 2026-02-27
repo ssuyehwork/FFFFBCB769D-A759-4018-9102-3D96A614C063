@@ -127,7 +127,15 @@ void LockScreenWindow::paintEvent(QPaintEvent *event) {
         painter.drawText(rect().adjusted(0, 100, 0, 0), Qt::AlignCenter, config.customMessage);
     }
 
-    // [已移除] 4. 实时时钟 (右下角时间已根据用户要求彻底移除)
+    // 4. 实时时钟 (右下角, HH:MM:SS)
+    painter.setOpacity(0.7);
+    painter.setPen(Qt::white);
+    QFont clockFont = painter.font();
+    clockFont.setPixelSize(16);
+    painter.setFont(clockFont);
+    QString currentTime = QDateTime::currentDateTime().toString("HH:mm:ss");
+    painter.drawText(rect().adjusted(0, 0, -20, -20), Qt::AlignRight | Qt::AlignBottom, currentTime);
+    painter.setOpacity(1.0);
 
     // 5. 倒计时显示
     if (remaining <= 20 && remaining > 0) {

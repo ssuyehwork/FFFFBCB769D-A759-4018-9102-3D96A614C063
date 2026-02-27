@@ -23,6 +23,8 @@ public:
         Close,          // 关闭
         Play,           // 开始/继续
         Pause,          // 暂停
+        Folder,         // 文件夹选择
+        Trash,          // 删除记录
     };
 
     // 返回指定颜色和尺寸的 QPixmap

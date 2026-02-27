@@ -60,11 +60,26 @@ void TopMostGuard::onGuardTick() {
         }
     }
 
-    // 对抗任务管理器：查找 taskmgr 窗口并压低或重新置顶我们的窗口
-    HWND taskMgr = FindWindowW(L"TaskManagerWindow", NULL);
-    if (taskMgr && IsWindowVisible(taskMgr)) {
-         // 只要任务管理器可见，我们就持续对我们的窗口调用 SetWindowPos
-         // 这里的循环已经处理了 SetWindowPos
+    // 对抗任务管理器：发现 taskmgr.exe 窗口存在且位于前台，立即抢回焦点
+    HWND fgWnd = GetForegroundWindow();
+    DWORD pid = 0;
+    GetWindowThreadProcessId(fgWnd, &pid);
+    HANDLE hProc = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+    if (hProc) {
+        wchar_t exePath[MAX_PATH] = {};
+        DWORD size = MAX_PATH;
+        if (QueryFullProcessImageNameW(hProc, 0, exePath, &size)) {
+            QString path = QString::fromWCharArray(exePath).toLower();
+            if (path.endsWith("taskmgr.exe")) {
+                for (QWidget* w : m_windows) {
+                    if (w->property("isMainScreen").toBool()) {
+                        SetForegroundWindow(reinterpret_cast<HWND>(w->winId()));
+                        break;
+                    }
+                }
+            }
+        }
+        CloseHandle(hProc);
     }
 #endif
 }

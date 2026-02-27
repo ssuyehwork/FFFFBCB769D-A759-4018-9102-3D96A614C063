@@ -33,6 +33,7 @@ set(SOURCES
     src/ui/LockScreenWindow.h src/ui/LockScreenWindow.cpp
     src/ui/UnlockDialog.h src/ui/UnlockDialog.cpp
     src/ui/TrayManager.h src/ui/TrayManager.cpp
+    src/ui/PreLockNotification.h src/ui/PreLockNotification.cpp
     # utils
     src/utils/SvgIcon.h src/utils/SvgIcon.cpp
 )

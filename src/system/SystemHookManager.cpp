@@ -29,9 +29,10 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         if (GetAsyncKeyState(VK_MENU) & 0x8000) {
             if (p->vkCode == VK_TAB || p->vkCode == VK_F4 || p->vkCode == VK_ESCAPE) block = true;
         }
-        // 拦截 Ctrl+Esc
+        // 拦截 Ctrl+Esc 和 Ctrl+Shift+Esc
         if (GetAsyncKeyState(VK_CONTROL) & 0x8000) {
             if (p->vkCode == VK_ESCAPE) block = true;
+            if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && p->vkCode == VK_ESCAPE) block = true;
         }
         // 拦截 PrintScreen
         if (p->vkCode == VK_SNAPSHOT) block = true;
