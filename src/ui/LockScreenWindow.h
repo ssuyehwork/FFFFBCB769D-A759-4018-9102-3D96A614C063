@@ -23,7 +23,6 @@ public slots:
 
 private:
     void applyAcrylic();
-    void showTouchWarning();
 
     bool m_isMain;
     QTimer *m_clockTimer;
