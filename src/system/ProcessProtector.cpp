@@ -31,27 +31,36 @@ void ProcessProtector::protect() {
     ea.grfInheritance = NO_INHERITANCE;
     ea.Trustee.TrusteeForm = TRUSTEE_IS_SID;
 
-    const int groupCount = 3;
-    WELL_KNOWN_SID_TYPE groups[groupCount] = {
-        WinWorldSid,             // Everyone
-        WinBuiltinAdminsSid,     // Administrators
-        WinLocalSystemSid        // SYSTEM
+    // 定义需要拒绝的组及其 SID
+    struct GroupSid {
+        SID_IDENTIFIER_AUTHORITY authority;
+        BYTE count;
+        DWORD subAuthorities[8];
+    };
+
+    GroupSid targets[3] = {
+        { SECURITY_WORLD_SID_AUTHORITY, 1, { SECURITY_WORLD_RID } },                       // Everyone (S-1-1-0)
+        { SECURITY_NT_AUTHORITY, 2, { SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS } }, // Administrators (S-1-5-32-544)
+        { SECURITY_NT_AUTHORITY, 1, { SECURITY_LOCAL_SYSTEM_RID } }                        // SYSTEM (S-1-5-18)
     };
 
     PACL pCurrentACL = pOldDACL;
 
-    for (int i = 0; i < groupCount; ++i) {
+    for (int i = 0; i < 3; ++i) {
         PSID pSid = NULL;
-        DWORD sidSize = SECURITY_MAX_SID_SIZE;
-        pSid = LocalAlloc(LPTR, sidSize);
-        if (CreateWellKnownSid(groups[i], NULL, pSid, &sidSize)) {
+        if (AllocateAndInitializeSid(&targets[i].authority, targets[i].count,
+                                     targets[i].subAuthorities[0], targets[i].subAuthorities[1],
+                                     targets[i].subAuthorities[2], targets[i].subAuthorities[3],
+                                     targets[i].subAuthorities[4], targets[i].subAuthorities[5],
+                                     targets[i].subAuthorities[6], targets[i].subAuthorities[7],
+                                     &pSid)) {
             ea.Trustee.ptstrName = (LPWSTR)pSid;
             PACL pNextACL = NULL;
             if (SetEntriesInAclW(1, &ea, pCurrentACL, &pNextACL) == ERROR_SUCCESS) {
                 if (pCurrentACL != pOldDACL) LocalFree(pCurrentACL);
                 pCurrentACL = pNextACL;
             }
-            LocalFree(pSid);
+            FreeSid(pSid);
         }
     }
 
@@ -68,36 +77,40 @@ void ProcessProtector::unprotect() {
     HANDLE hProcess = GetCurrentProcess();
     
     // 恢复逻辑：将进程的 DACL 重置为允许所有人完全访问，确保能被正常关闭
-    // 注意：在 protect() 中我们使用了 DENY_ACCESS，它在 ACL 中的优先级高于 ALLOW_ACCESS。
-    // 因此，unprotect 必须显式移除这些拒绝条目，最简单的做法是赋予一个新的、只有“允许”条目的 ACL。
+    // unprotect 必须显式移除拒绝条目，这里赋予一个新的、只有“允许”条目的 ACL。
     
     PACL pNewDACL = NULL;
     EXPLICIT_ACCESSW ea[3];
     ZeroMemory(&ea, sizeof(ea));
 
-    WELL_KNOWN_SID_TYPE groups[3] = { WinWorldSid, WinBuiltinAdminsSid, WinLocalSystemSid };
+    SID_IDENTIFIER_AUTHORITY worldAuth = SECURITY_WORLD_SID_AUTHORITY;
+    SID_IDENTIFIER_AUTHORITY ntAuth = SECURITY_NT_AUTHORITY;
     PSID pSids[3] = { NULL, NULL, NULL };
 
+    AllocateAndInitializeSid(&worldAuth, 1, SECURITY_WORLD_RID, 0, 0, 0, 0, 0, 0, 0, &pSids[0]);
+    AllocateAndInitializeSid(&ntAuth, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS, 0, 0, 0, 0, 0, 0, &pSids[1]);
+    AllocateAndInitializeSid(&ntAuth, 1, SECURITY_LOCAL_SYSTEM_RID, 0, 0, 0, 0, 0, 0, 0, &pSids[2]);
+
+    int validCount = 0;
     for (int i = 0; i < 3; ++i) {
-        DWORD sidSize = SECURITY_MAX_SID_SIZE;
-        pSids[i] = LocalAlloc(LPTR, sidSize);
-        if (CreateWellKnownSid(groups[i], NULL, pSids[i], &sidSize)) {
-            ea[i].grfAccessPermissions = PROCESS_ALL_ACCESS;
-            ea[i].grfAccessMode = SET_ACCESS;
-            ea[i].grfInheritance = NO_INHERITANCE;
-            ea[i].Trustee.TrusteeForm = TRUSTEE_IS_SID;
-            ea[i].Trustee.ptstrName = (LPWSTR)pSids[i];
+        if (pSids[i]) {
+            ea[validCount].grfAccessPermissions = PROCESS_ALL_ACCESS;
+            ea[validCount].grfAccessMode = SET_ACCESS;
+            ea[validCount].grfInheritance = NO_INHERITANCE;
+            ea[validCount].Trustee.TrusteeForm = TRUSTEE_IS_SID;
+            ea[validCount].Trustee.ptstrName = (LPWSTR)pSids[i];
+            validCount++;
         }
     }
 
-    if (SetEntriesInAclW(3, ea, NULL, &pNewDACL) == ERROR_SUCCESS) {
+    if (validCount > 0 && SetEntriesInAclW(validCount, ea, NULL, &pNewDACL) == ERROR_SUCCESS) {
         SetSecurityInfo(hProcess, SE_KERNEL_OBJECT, DACL_SECURITY_INFORMATION,
                         NULL, NULL, pNewDACL, NULL);
     }
 
     if (pNewDACL) LocalFree(pNewDACL);
     for (int i = 0; i < 3; ++i) {
-        if (pSids[i]) LocalFree(pSids[i]);
+        if (pSids[i]) FreeSid(pSids[i]);
     }
 }
 
