@@ -59,7 +59,7 @@ public:
         connect(&SystemHookManager::instance(), &SystemHookManager::mouseTouched, this, &AppController::handleMouseTouch);
     }
 
-    void start() {
+    void start(bool forceLock = false) {
         if (m_isGuard) {
             // 守护模式：仅开启监控，不显示任何 UI
             startWatchdog();
@@ -69,7 +69,15 @@ public:
             // 主进程模式
             m_tray->setVisible(true);
             SystemHookManager::instance().startHook();
-            showSetup();
+
+            if (forceLock) {
+                // 如果是强杀后的重启惩罚：跳过配置，直接加固并锁定
+                ProcessProtector::protect();
+                spawnGuard();
+                handleImmediateLock();
+            } else {
+                showSetup();
+            }
         }
     }
 
@@ -445,14 +453,9 @@ int main(int argc, char *argv[]) {
     if (!originalPath.isEmpty()) {
         controller.setOriginalPath(originalPath);
     }
-    controller.start();
 
-    if (forceLock) {
-        // 等待事件循环启动后立即强制锁定
-        QTimer::singleShot(0, &controller, [&controller](){
-            controller.handleImmediateLock();
-        });
-    }
+    // 将惩罚标志直接传入 start
+    controller.start(forceLock);
 
     return a.exec();
 }
