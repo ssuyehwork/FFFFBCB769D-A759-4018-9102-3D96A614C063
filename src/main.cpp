@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QUuid>
 #include <QFile>
+#include <QWidget>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
