@@ -70,6 +70,21 @@ SettingsPanel::SettingsPanel(QWidget *parent) : QDialog(parent) {
     m_warningSecs->setValue(config.warningDurationSeconds);
     formLayout->addRow("预警触发时长 (秒)：", m_warningSecs);
 
+    // 密码设置区域
+    formLayout->addRow(new QLabel(" ")); // 分隔线
+    QLabel* passTitle = new QLabel("设置/修改解锁密码");
+    passTitle->setStyleSheet("font-weight: bold; color: #4CAF50;");
+    formLayout->addRow(passTitle);
+
+    m_newPassEdit = new QLineEdit();
+    m_newPassEdit->setEchoMode(QLineEdit::Password);
+    m_newPassEdit->setPlaceholderText(config.passwordHash.isEmpty() ? "设置初始密码" : "留空表示不修改密码");
+    formLayout->addRow("新解锁密码：", m_newPassEdit);
+
+    m_confirmNewPassEdit = new QLineEdit();
+    m_confirmNewPassEdit->setEchoMode(QLineEdit::Password);
+    formLayout->addRow("确认新密码：", m_confirmNewPassEdit);
+
     mainLayout->addLayout(formLayout);
 
     QPushButton *btnLog = new QPushButton("查看锁屏日志");
@@ -100,6 +115,26 @@ void SettingsPanel::clearBackgroundImage() {
 
 void SettingsPanel::saveAndClose() {
     AppConfig config = ConfigManager::instance().getConfig();
+
+    // 密码修改逻辑
+    QString p1 = m_newPassEdit->text();
+    QString p2 = m_confirmNewPassEdit->text();
+
+    if (!p1.isEmpty()) {
+        if (p1.length() < 4) {
+            QMessageBox::warning(this, "错误", "密码长度不能少于 4 位！");
+            return;
+        }
+        if (p1 != p2) {
+            QMessageBox::warning(this, "错误", "两次输入的密码不一致！");
+            return;
+        }
+        config.passwordHash = ConfigManager::hashPassword(p1);
+    } else if (config.passwordHash.isEmpty()) {
+        QMessageBox::warning(this, "提示", "首次运行必须设置解锁密码！");
+        return;
+    }
+
     config.overlayOpacity = m_opacitySlider->value();
     config.backgroundImagePath = m_bgPathEdit->text();
     config.showLockIcon = m_showLockIcon->isChecked();
