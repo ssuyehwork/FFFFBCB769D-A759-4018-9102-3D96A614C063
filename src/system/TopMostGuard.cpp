@@ -43,31 +43,17 @@ void TopMostGuard::onGuardTick() {
     // 我们也应该停止对遮罩窗口的置顶调用，避免它们盖过对话框
     if (!m_focusStealingEnabled) return;
 
-    HWND fgWnd = GetForegroundWindow();
-    DWORD currentProcId = GetCurrentProcessId();
-
     for (QWidget* w : m_windows) {
         if (w && w->isVisible()) {
             HWND hwnd = reinterpret_cast<HWND>(w->winId());
             
-            // 优化：仅在窗口未处于顶层时才调用 SetWindowPos，减少亚克力背景闪烁
-            if (GetWindowLong(hwnd, GWL_EXSTYLE) & WS_EX_TOPMOST) {
-                // 已置顶，检查是否在最上方
-                if (GetWindow(hwnd, GW_HWNDPREV) != NULL) {
-                    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
-                }
-            } else {
-                SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
-            }
+            // 确保窗口在最顶层
+            SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
             
             // 仅在正式锁定状态下执行抢焦点逻辑，预警期不干扰用户操作
             bool isLocked = w->property("isLocked").toBool();
             if (isLocked && w->property("isMainScreen").toBool()) {
-                // 优化：如果当前前台窗口属于本进程（可能是输入框获得焦点），则不抢夺
-                DWORD fgProcId = 0;
-                GetWindowThreadProcessId(fgWnd, &fgProcId);
-                
-                if (fgWnd != hwnd && fgProcId != currentProcId) {
+                if (GetForegroundWindow() != hwnd) {
                     SetForegroundWindow(hwnd);
                 }
             }
@@ -75,7 +61,7 @@ void TopMostGuard::onGuardTick() {
     }
 
     // 对抗任务管理器：发现 taskmgr.exe 窗口存在且位于前台，立即响应
-    fgWnd = GetForegroundWindow();
+    HWND fgWnd = GetForegroundWindow();
     DWORD pid = 0;
     GetWindowThreadProcessId(fgWnd, &pid);
     HANDLE hProc = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
