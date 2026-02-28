@@ -1,5 +1,7 @@
 #include "ProcessProtector.h"
 
+#include <QtGlobal>
+
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <aclapi.h>
@@ -127,4 +129,5 @@ void ProcessProtector::setCritical(bool enable) {
 #else
 void ProcessProtector::protect() {}
 void ProcessProtector::unprotect() {}
+void ProcessProtector::setCritical(bool) {}
 #endif
