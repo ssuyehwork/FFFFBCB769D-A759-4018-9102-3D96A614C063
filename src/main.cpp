@@ -342,11 +342,8 @@ private slots:
                            "请先合法退出“CountdownLock.exe”程序后再进行尝试进入任务管理器",
                            nullptr, QRect(), 5000);
 
-        // 2. 仅在倒计时/预警阶段触发强制锁定逻辑
-        auto state = CountdownEngine::instance().state();
-        if (state == CountdownEngine::Counting || state == CountdownEngine::PreLockWarning) {
-            handleImmediateLock();
-        }
+        // 注意：根据用户要求，检测到任务管理器后仅强杀进程并提示，
+        // 不再自动触发提前锁屏（handleImmediateLock），尊重原定的倒计时流程。
     }
 
     void handleMouseTouch() {
