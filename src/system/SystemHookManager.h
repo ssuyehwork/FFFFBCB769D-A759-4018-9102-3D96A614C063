@@ -21,6 +21,7 @@ protected:
 
 signals:
     void keyPressed(int vkCode);
+    void taskManagerHotKeyDetected();
     void mouseTouched();
 
 private:
