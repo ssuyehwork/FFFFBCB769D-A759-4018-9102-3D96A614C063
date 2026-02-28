@@ -383,19 +383,36 @@ private slots:
     }
 
     void handleExit() {
+        auto state = CountdownEngine::instance().state();
         // 如果正在倒计时或锁定中，退出前必须验证密码
-        if (CountdownEngine::instance().state() != CountdownEngine::Idle) {
+        if (state != CountdownEngine::Idle) {
+            // 暂停倒计时，防止在输入密码期间由于计时归零而触发锁屏
+            CountdownEngine::instance().pause();
+
             bool ok;
-            QString pwd = QInputDialog::getText(nullptr, "安全退出", "倒计时运行中，请输入解锁密码以退出：", QLineEdit::Password, "", &ok);
-            if (!ok || pwd.isEmpty()) return;
+            QString pwd = QInputDialog::getText(nullptr, "安全退出", "程序运行中，请输入解锁密码以确认退出：", QLineEdit::Password, "", &ok);
+
+            if (!ok || pwd.isEmpty()) {
+                CountdownEngine::instance().resume();
+                return;
+            }
             
             if (!ConfigManager::verifyPassword(pwd, ConfigManager::instance().getConfig().passwordHash)) {
                 QMessageBox::warning(nullptr, "错误", "密码错误，无法退出！");
+                CountdownEngine::instance().resume();
                 return;
             }
             // 验证通过，恢复权限
             ProcessProtector::unprotect();
         }
+
+        // 验证通过后，显式停止倒计时并清理遮罩（如果存在）
+        CountdownEngine::instance().stop();
+        for (auto w : m_lockWindows) {
+            w->hide();
+            w->deleteLater();
+        }
+        m_lockWindows.clear();
 
         // 停止守护，解除关键进程标记
         ProcessProtector::setCritical(false);
