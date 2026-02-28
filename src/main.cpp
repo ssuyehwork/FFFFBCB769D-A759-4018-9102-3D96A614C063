@@ -33,17 +33,6 @@ public:
     AppController(qint64 partnerPid = 0) : m_partnerPid(partnerPid) {
         m_isGuard = (partnerPid != 0);
 #ifdef Q_OS_WIN
-        // 创建辅助窗口用于稳定接收热键消息
-        m_hotkeyWindow = new QWidget();
-        if (!RegisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 1, MOD_CONTROL | MOD_ALT, 'L')) {
-            // 热键注册失败
-        }
-        // 临时新增：Ctrl+Shift+F10 强制退出热键 (ID: 2)
-        RegisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 2, MOD_CONTROL | MOD_SHIFT, VK_F10);
-        
-        // 核心加固：劫持 Ctrl+Shift+Esc (ID: 3)
-        RegisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 3, MOD_CONTROL | MOD_SHIFT, VK_ESCAPE);
-
         qApp->installNativeEventFilter(this);
 #endif
         m_tray = new TrayManager(this);
@@ -63,8 +52,6 @@ public:
         // 移除 Esc 触发对话框的全局连接，改为遮罩内部处理
         connect(&SystemHookManager::instance(), &SystemHookManager::mouseTouched, this, &AppController::handleMouseTouch);
 
-        // 新增：连接热键拦截信号
-        connect(&SystemHookManager::instance(), &SystemHookManager::taskManagerHotKeyDetected, this, &AppController::handleAntiTamper);
     }
 
     void start(bool forceLock = false) {
@@ -86,21 +73,25 @@ public:
                 // 判定为“断点续锁”
                 int remaining = now.secsTo(targetEnd);
 
-                // 自动开启加固、守护和遮罩
+                // 1. 初始化核心系统服务 (关键修复：恢复锁定也需要钩子和置顶监控)
+                SystemHookManager::instance().startHook();
+                TopMostGuard::instance().startGuard();
+
+                // 2. 开启加固、守护和遮罩
                 ProcessProtector::protect();
-                ProcessProtector::setSystemPolicies(true);
                 spawnGuard();
                 handleImmediateLock();
 
-                // 从断点恢复倒计时引擎
+                // 3. 从断点恢复倒计时引擎
                 CountdownEngine::instance().resumeFromTime(remaining);
                 return;
             }
 
             // 2. 处理被强杀后的重启惩罚
             if (forceLock) {
+                SystemHookManager::instance().startHook();
+                TopMostGuard::instance().startGuard();
                 ProcessProtector::protect();
-                ProcessProtector::setSystemPolicies(true);
                 spawnGuard();
                 handleImmediateLock();
             } else {
@@ -221,21 +212,6 @@ public:
                     return true;
                 }
             }
-
-            if (msg->message == WM_HOTKEY) {
-                if (msg->wParam == 1) {
-                    handleImmediateLock();
-                    return true;
-                } else if (msg->wParam == 2) {
-                    handleExit();
-                    return true;
-                } else if (msg->wParam == 3) {
-                    // 用户按下了 Ctrl+Shift+Esc
-                    handleAntiTamper();
-                    return true;
-                }
-            }
-        }
 #endif
         Q_UNUSED(result);
         return false;
@@ -251,9 +227,6 @@ private slots:
             
             // 方案 E：剥离终止进程权限
             ProcessProtector::protect();
-
-            // 核心加固：禁用系统关键功能策略
-            ProcessProtector::setSystemPolicies(true);
 
             // 启动守护进程
             spawnGuard();
@@ -328,9 +301,8 @@ private slots:
         TopMostGuard::instance().clearWindows();
         PowerManager::allowSleepAndScreenOff();
         
-        // 关键：先解除蓝屏保护、恢复系统策略并剥离守护逻辑，再退出
+        // 关键：先解除蓝屏保护并剥离守护逻辑，再退出
         ProcessProtector::setCritical(false);
-        ProcessProtector::setSystemPolicies(false);
         if (m_watchdogTimer) m_watchdogTimer->stop();
         m_partnerPid = 0;
 
@@ -394,8 +366,6 @@ private slots:
     void handleExit() {
         // 如果正在倒计时或锁定中，退出前必须验证密码
         if (CountdownEngine::instance().state() != CountdownEngine::Idle) {
-            // 恢复系统策略（如果之前禁用了）
-            ProcessProtector::setSystemPolicies(false);
             bool ok;
             QString pwd = QInputDialog::getText(nullptr, "安全退出", "倒计时运行中，请输入解锁密码以退出：", QLineEdit::Password, "", &ok);
             if (!ok || pwd.isEmpty()) return;
@@ -418,13 +388,6 @@ private slots:
             QFile::remove(m_guardFile);
         }
 
-#ifdef Q_OS_WIN
-        if (m_hotkeyWindow) {
-            UnregisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 1);
-            UnregisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 2);
-            UnregisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 3);
-        }
-#endif
         qApp->exit(0);
     }
 
@@ -467,7 +430,6 @@ private:
     int m_touchCount = 0;
     bool m_isUnlockDialogOpen = false;
     PreLockNotification *m_preLockNotify = nullptr;
-    QWidget *m_hotkeyWindow = nullptr;
 
     bool m_isGuard = false;
     qint64 m_partnerPid = 0;

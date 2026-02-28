@@ -12,8 +12,6 @@ public:
     // 设置进程为“系统关键进程”，被终止时将触发蓝屏
     static void setCritical(bool enable);
 
-    // 彻底封锁系统关键功能（任务管理器、注销、改密、锁屏），使 Ctrl+Alt+Del 界面失效
-    static void setSystemPolicies(bool enable);
 };
 
 #endif // PROCESSPROTECTOR_H

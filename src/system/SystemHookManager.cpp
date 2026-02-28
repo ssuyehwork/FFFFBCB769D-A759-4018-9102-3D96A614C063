@@ -18,24 +18,6 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
              if (g_hookThread) emit g_hookThread->keyPressed(VK_ESCAPE);
         }
 
-        // 关键逻辑：即使处于非阻塞模式（倒计时期间），也要拦截任务管理器快捷键
-        bool isCounting = (CountdownEngine::instance().state() != CountdownEngine::Idle);
-        if (isCounting) {
-            bool isCtrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000);
-            bool isShift = (GetAsyncKeyState(VK_SHIFT) & 0x8000);
-
-            // 拦截 Ctrl + Shift + Esc
-            if (isCtrl && isShift && p->vkCode == VK_ESCAPE) {
-                if (g_hookThread) emit g_hookThread->taskManagerHotKeyDetected();
-                return 1;
-            }
-            // 拦截 Ctrl + Esc (也是打开开始菜单/任务管理器的路径)
-            if (isCtrl && p->vkCode == VK_ESCAPE) {
-                if (g_hookThread) emit g_hookThread->taskManagerHotKeyDetected();
-                return 1;
-            }
-        }
-
         // 如果当前处于非阻塞模式（如预警期或解锁对话框开启时），直接放行
         if (!SystemHookManager::s_isBlocking) {
             return CallNextHookEx(NULL, nCode, wParam, lParam);
@@ -122,7 +104,6 @@ void SystemHookManager::startHook() {
         // 修改：使用槽函数进行转发，避免信号路径混乱
         connect(m_hookThread, &HookThread::keyPressed, this, &SystemHookManager::handleKeyPressed);
         connect(m_hookThread, &HookThread::mouseTouched, this, &SystemHookManager::handleMouseTouched);
-        connect(m_hookThread, &HookThread::taskManagerHotKeyDetected, this, &SystemHookManager::taskManagerHotKeyDetected);
         m_hookThread->start();
     }
 #endif

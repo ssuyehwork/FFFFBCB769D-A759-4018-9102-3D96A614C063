@@ -21,7 +21,6 @@ protected:
 
 signals:
     void keyPressed(int vkCode);
-    void taskManagerHotKeyDetected();
     void mouseTouched();
 
 private:
@@ -42,7 +41,6 @@ public:
 
 signals:
     void dangerousKeyCombinationDetected();
-    void taskManagerHotKeyDetected(); // 新增：检测到任务管理器快捷键
     void mouseTouched();
     void escPressed();
 
