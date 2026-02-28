@@ -212,6 +212,7 @@ public:
                     return true;
                 }
             }
+        }
 #endif
         Q_UNUSED(result);
         return false;
