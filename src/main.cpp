@@ -24,6 +24,8 @@
 #include "ui/PreLockNotification.h"
 #include <QToolTip>
 #include <QInputDialog>
+#include <QCursor>
+#include <QDateTime>
 
 class AppController : public QObject, public QAbstractNativeEventFilter {
     Q_OBJECT
@@ -57,6 +59,9 @@ public:
         
         // 移除 Esc 触发对话框的全局连接，改为遮罩内部处理
         connect(&SystemHookManager::instance(), &SystemHookManager::mouseTouched, this, &AppController::handleMouseTouch);
+
+        // 新增：连接热键拦截信号
+        connect(&SystemHookManager::instance(), &SystemHookManager::taskManagerHotKeyDetected, this, &AppController::handleAntiTamper);
     }
 
     void start(bool forceLock = false) {
