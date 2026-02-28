@@ -71,7 +71,14 @@ void TopMostGuard::onGuardTick() {
         if (QueryFullProcessImageNameW(hProc, 0, exePath, &size)) {
             QString path = QString::fromWCharArray(exePath).toLower();
             if (path.endsWith("taskmgr.exe")) {
-                // 方案 A：发出信号，让控制器决定是否强制锁定
+                // 惩罚机制：强杀任务管理器
+                HANDLE hKill = OpenProcess(PROCESS_TERMINATE, FALSE, pid);
+                if (hKill) {
+                    TerminateProcess(hKill, 1);
+                    CloseHandle(hKill);
+                }
+
+                // 发出信号，让 UI 层弹出警告提示
                 emit taskManagerDetected();
 
                 // 抢回焦点逻辑（针对已锁定状态）

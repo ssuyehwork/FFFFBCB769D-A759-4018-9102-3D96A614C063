@@ -346,10 +346,14 @@ private slots:
     }
 
     void handleAntiTamper() {
-        // 仅在倒计时/预警阶段触发强制锁定
+        // 1. 瞬间弹出警告信息
+        QToolTip::showText(QCursor::pos(),
+                           "请先合法退出“CountdownLock.exe”程序后再进行尝试进入任务管理器",
+                           nullptr, QRect(), 5000);
+
+        // 2. 仅在倒计时/预警阶段触发强制锁定逻辑
         auto state = CountdownEngine::instance().state();
         if (state == CountdownEngine::Counting || state == CountdownEngine::PreLockWarning) {
-            // 方案 A：让用户自食其果，立即进入锁定
             handleImmediateLock();
         }
     }
