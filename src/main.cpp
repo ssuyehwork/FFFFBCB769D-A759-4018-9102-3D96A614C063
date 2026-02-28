@@ -348,8 +348,13 @@ private slots:
         rec.manualUnlock = true;
         SessionLogger::instance().logSession(rec);
 
-        // 解锁后直接退出程序 (带 0 退出码通知守护进程正常退出)
-        qApp->exit(0);
+        // 根据配置决定是退出还是返回主界面
+        if (ConfigManager::instance().getConfig().stayRunningAfterUnlock) {
+            showSetup();
+        } else {
+            // 解锁后直接退出程序 (带 0 退出码通知守护进程正常退出)
+            qApp->exit(0);
+        }
     }
 
     void handleAntiTamper() {

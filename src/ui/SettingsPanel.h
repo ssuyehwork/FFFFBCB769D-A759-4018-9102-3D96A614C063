@@ -25,6 +25,7 @@ private:
     QCheckBox *m_showLockIcon;
     QLineEdit *m_customMessage;
     QCheckBox *m_preventSleep;
+    QCheckBox *m_stayRunning;
     QCheckBox *m_launchOnStartup;
     QSpinBox *m_maxAttempts;
     QSpinBox *m_lockoutSecs;

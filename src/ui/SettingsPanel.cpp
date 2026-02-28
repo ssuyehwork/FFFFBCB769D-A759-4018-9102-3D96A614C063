@@ -51,6 +51,10 @@ SettingsPanel::SettingsPanel(QWidget *parent) : QDialog(parent) {
     m_launchOnStartup->setChecked(config.launchOnStartup);
     formLayout->addRow(m_launchOnStartup);
 
+    m_stayRunning = new QCheckBox("解锁后不自动退出程序");
+    m_stayRunning->setChecked(config.stayRunningAfterUnlock);
+    formLayout->addRow(m_stayRunning);
+
     m_maxAttempts = new QSpinBox();
     m_maxAttempts->setRange(1, 10);
     m_maxAttempts->setValue(config.maxPasswordAttempts);
@@ -101,6 +105,7 @@ void SettingsPanel::saveAndClose() {
     config.showLockIcon = m_showLockIcon->isChecked();
     config.customMessage = m_customMessage->text();
     config.preventSleep = m_preventSleep->isChecked();
+    config.stayRunningAfterUnlock = m_stayRunning->isChecked();
     config.launchOnStartup = m_launchOnStartup->isChecked();
     config.maxPasswordAttempts = m_maxAttempts->value();
     config.lockoutDurationSecs = m_lockoutSecs->value();

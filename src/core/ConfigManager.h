@@ -16,6 +16,7 @@ struct AppConfig {
     bool    showLockIcon = true;        // 是否显示锁SVG图标
     QString customMessage = "专注中，请勿打扰"; // 自定义锁屏文字
     bool    preventSleep = true;        // 阻止系统息屏/睡眠
+    bool    stayRunningAfterUnlock = false; // 解锁后不自动退出程序
     bool    launchOnStartup = false;    // 开机自启
     int     maxPasswordAttempts = 5;    // 最大密码错误次数
     int     lockoutDurationSecs = 30;   // 超过错误次数后的惩罚锁定秒数
