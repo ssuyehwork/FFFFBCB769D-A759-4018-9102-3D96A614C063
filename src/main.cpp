@@ -233,7 +233,11 @@ public:
 private slots:
     void showSetup() {
         SetupDialog dlg;
-        if (dlg.exec() == QDialog::Accepted) {
+        m_activeSetupDialog = &dlg;
+        int result = dlg.exec();
+        m_activeSetupDialog = nullptr;
+
+        if (result == QDialog::Accepted) {
             int mins = ConfigManager::instance().getConfig().countdownMinutes;
             m_sessionStartTime = QDateTime::currentDateTime();
             m_touchCount = 0;
@@ -411,6 +415,11 @@ private slots:
 public slots:
     void handleImmediateLock() {
         if (!m_lockWindows.isEmpty()) return; // 已经在锁屏中
+
+        // 关键修复：如果在配置界面按快捷键，先关闭配置界面，防止模态阻塞
+        if (m_activeSetupDialog) {
+            m_activeSetupDialog->reject();
+        }
         
         m_sessionStartTime = QDateTime::currentDateTime();
         m_touchCount = 0;
@@ -468,7 +477,8 @@ private:
     bool m_isUnlockDialogOpen = false;
     PreLockNotification *m_preLockNotify = nullptr;
     QWidget *m_hotkeyWindow = nullptr;
-    
+    SetupDialog *m_activeSetupDialog = nullptr;
+
     bool m_isGuard = false;
     qint64 m_partnerPid = 0;
     QTimer *m_watchdogTimer = nullptr;
