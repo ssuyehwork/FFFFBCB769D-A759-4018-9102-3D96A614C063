@@ -1,9 +1,12 @@
 #include "UnlockDialog.h"
 #include "../core/ConfigManager.h"
+#include "../core/CountdownEngine.h"
 #include "../utils/SvgIcon.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QPropertyAnimation>
+#include <QLabel>
+#include <QIcon>
 
 UnlockDialog::UnlockDialog(QWidget *parent) : QDialog(parent) {
     // 明确设置置顶标志，并确保它是模态对话框
