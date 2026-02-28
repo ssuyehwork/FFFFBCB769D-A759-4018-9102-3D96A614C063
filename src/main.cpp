@@ -37,8 +37,6 @@ public:
         m_hotkeyWindow = new QWidget();
         // 注册 Ctrl + Alt + L 为立即锁屏热键
         RegisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 1, MOD_CONTROL | MOD_ALT, 'L');
-        // 注册 Ctrl + Shift + F10 为紧急退出热键
-        RegisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 2, MOD_CONTROL | MOD_SHIFT, VK_F10);
 
         qApp->installNativeEventFilter(this);
 #endif
@@ -224,9 +222,6 @@ public:
                 if (msg->wParam == 1) { // 立即锁屏热键 (Ctrl+Alt+L)
                     handleImmediateLock();
                     return true;
-                } else if (msg->wParam == 2) { // 紧急退出热键 (Ctrl+Shift+F10)
-                    handleExit();
-                    return true;
                 }
             }
         }
@@ -406,7 +401,6 @@ private slots:
 #ifdef Q_OS_WIN
         if (m_hotkeyWindow) {
             UnregisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 1);
-            UnregisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 2);
             delete m_hotkeyWindow;
             m_hotkeyWindow = nullptr;
         }
