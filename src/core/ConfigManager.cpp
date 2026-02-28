@@ -26,6 +26,7 @@ void ConfigManager::load() {
     m_config.customMessage = m_settings->value("customMessage", "专注中，请勿打扰").toString();
     m_config.preventSleep = m_settings->value("preventSleep", true).toBool();
     m_config.launchOnStartup = m_settings->value("launchOnStartup", false).toBool();
+    m_config.stayRunningAfterUnlock = m_settings->value("stayRunningAfterUnlock", false).toBool();
     m_config.maxPasswordAttempts = m_settings->value("maxPasswordAttempts", 5).toInt();
     m_config.lockoutDurationSecs = m_settings->value("lockoutDurationSecs", 30).toInt();
     m_config.warningDurationSeconds = m_settings->value("warningDurationSeconds", 20).toInt();
@@ -49,6 +50,7 @@ void ConfigManager::save() {
     m_settings->setValue("customMessage", m_config.customMessage);
     m_settings->setValue("preventSleep", m_config.preventSleep);
     m_settings->setValue("launchOnStartup", m_config.launchOnStartup);
+    m_settings->setValue("stayRunningAfterUnlock", m_config.stayRunningAfterUnlock);
     m_settings->setValue("maxPasswordAttempts", m_config.maxPasswordAttempts);
     m_settings->setValue("lockoutDurationSecs", m_config.lockoutDurationSecs);
     m_settings->setValue("warningDurationSeconds", m_config.warningDurationSeconds);
