@@ -16,6 +16,7 @@
 #include "ui/TrayManager.h"
 #include "ui/PreLockNotification.h"
 #include <QToolTip>
+#include <QInputDialog>
 
 class AppController : public QObject, public QAbstractNativeEventFilter {
     Q_OBJECT
@@ -64,8 +65,8 @@ public:
                     handleImmediateLock();
                     return true;
                 } else if (msg->wParam == 2) {
-                    // 临时紧急退出
-                    qApp->quit();
+                    // 紧急退出也进入受保护的退出流程
+                    handleExit();
                     return true;
                 }
             }
@@ -186,17 +187,25 @@ private slots:
     }
 
     void handleExit() {
+        // 如果正在倒计时或锁定中，退出前必须验证密码
+        if (CountdownEngine::instance().state() != CountdownEngine::Idle) {
+            bool ok;
+            QString pwd = QInputDialog::getText(nullptr, "安全退出", "倒计时运行中，请输入解锁密码以退出：", QLineEdit::Password, "", &ok);
+            if (!ok || pwd.isEmpty()) return;
+
+            if (!ConfigManager::verifyPassword(pwd, ConfigManager::instance().getConfig().passwordHash)) {
+                QMessageBox::warning(nullptr, "错误", "密码错误，无法退出！");
+                return;
+            }
+        }
+
 #ifdef Q_OS_WIN
         if (m_hotkeyWindow) {
             UnregisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 1);
             UnregisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 2);
         }
 #endif
-        if (!m_lockWindows.isEmpty()) {
-            // 锁定中，不响应退出
-        } else {
-            qApp->quit();
-        }
+        qApp->quit();
     }
 
     void handleImmediateLock() {
