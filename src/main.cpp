@@ -33,6 +33,13 @@ public:
     AppController(qint64 partnerPid = 0) : m_partnerPid(partnerPid) {
         m_isGuard = (partnerPid != 0);
 #ifdef Q_OS_WIN
+        // 创建辅助窗口用于接收立即锁屏热键
+        m_hotkeyWindow = new QWidget();
+        // 注册 Ctrl + Alt + L 为立即锁屏热键
+        RegisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 1, MOD_CONTROL | MOD_ALT, 'L');
+        // 注册 Ctrl + Shift + F10 为紧急退出热键
+        RegisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 2, MOD_CONTROL | MOD_SHIFT, VK_F10);
+
         qApp->installNativeEventFilter(this);
 #endif
         m_tray = new TrayManager(this);
@@ -212,6 +219,16 @@ public:
                     return true;
                 }
             }
+
+            if (msg->message == WM_HOTKEY) {
+                if (msg->wParam == 1) { // 立即锁屏热键 (Ctrl+Alt+L)
+                    handleImmediateLock();
+                    return true;
+                } else if (msg->wParam == 2) { // 紧急退出热键 (Ctrl+Shift+F10)
+                    handleExit();
+                    return true;
+                }
+            }
         }
 #endif
         Q_UNUSED(result);
@@ -386,6 +403,14 @@ private slots:
             QFile::remove(m_guardFile);
         }
 
+#ifdef Q_OS_WIN
+        if (m_hotkeyWindow) {
+            UnregisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 1);
+            UnregisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 2);
+            delete m_hotkeyWindow;
+            m_hotkeyWindow = nullptr;
+        }
+#endif
         qApp->exit(0);
     }
 
@@ -428,6 +453,7 @@ private:
     int m_touchCount = 0;
     bool m_isUnlockDialogOpen = false;
     PreLockNotification *m_preLockNotify = nullptr;
+    QWidget *m_hotkeyWindow = nullptr;
 
     bool m_isGuard = false;
     qint64 m_partnerPid = 0;
