@@ -34,6 +34,7 @@ set(SOURCES
     src/ui/LockScreenWindow.h src/ui/LockScreenWindow.cpp
     src/ui/TrayManager.h src/ui/TrayManager.cpp
     src/ui/PreLockNotification.h src/ui/PreLockNotification.cpp
+    src/ui/UnlockDialog.h src/ui/UnlockDialog.cpp
     # utils
     src/utils/SvgIcon.h src/utils/SvgIcon.cpp
     # resources
@@ -53,6 +54,7 @@ target_link_libraries(CountdownLock PRIVATE
     user32
     kernel32
     advapi32
+    shell32
 )
 
 # 安装配置（可选）

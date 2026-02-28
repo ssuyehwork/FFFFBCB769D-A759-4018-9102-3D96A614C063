@@ -4,9 +4,9 @@
 #include <windows.h>
 #include "../core/CountdownEngine.h"
 
-HHOOK hKeyHook = NULL;
-HHOOK hMouseHook = NULL;
-HookThread* g_hookThread = nullptr;
+static HHOOK hKeyHook = NULL;
+static HHOOK hMouseHook = NULL;
+static HookThread* g_hookThread = nullptr;
 std::atomic<bool> SystemHookManager::s_isBlocking{false};
 
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
