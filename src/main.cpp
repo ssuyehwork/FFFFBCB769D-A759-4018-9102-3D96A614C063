@@ -11,6 +11,7 @@
 #include "system/TopMostGuard.h"
 #include "system/SystemHookManager.h"
 #include "system/PowerManager.h"
+#include "system/ProcessProtector.h"
 #include "ui/SetupDialog.h"
 #include "ui/LockScreenWindow.h"
 #include "ui/TrayManager.h"
@@ -85,6 +86,9 @@ private slots:
             m_sessionStartTime = QDateTime::currentDateTime();
             m_touchCount = 0;
 
+            // 方案 E：剥离终止进程权限
+            ProcessProtector::protect();
+
             // 启动倒计时即开启监控，防范任务管理器强杀
             TopMostGuard::instance().startGuard();
             CountdownEngine::instance().start(mins);
@@ -155,6 +159,9 @@ private slots:
         TopMostGuard::instance().clearWindows();
         PowerManager::allowSleepAndScreenOff();
 
+        // 恢复权限以便退出
+        ProcessProtector::unprotect();
+
         // 2. 物理隐藏所有遮罩窗口，防止 deleteLater 延迟
         for (auto w : m_lockWindows) {
             w->hide();
@@ -211,6 +218,8 @@ private slots:
                 QMessageBox::warning(nullptr, "错误", "密码错误，无法退出！");
                 return;
             }
+            // 验证通过，恢复权限
+            ProcessProtector::unprotect();
         }
 
 #ifdef Q_OS_WIN

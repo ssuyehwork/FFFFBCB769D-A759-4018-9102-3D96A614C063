@@ -27,6 +27,7 @@ set(SOURCES
     src/system/SystemHookManager.h src/system/SystemHookManager.cpp
     src/system/TopMostGuard.h src/system/TopMostGuard.cpp
     src/system/PowerManager.h src/system/PowerManager.cpp
+    src/system/ProcessProtector.h src/system/ProcessProtector.cpp
     # ui
     src/ui/SetupDialog.h src/ui/SetupDialog.cpp
     src/ui/SettingsPanel.h src/ui/SettingsPanel.cpp
