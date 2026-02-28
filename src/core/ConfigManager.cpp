@@ -29,7 +29,8 @@ void ConfigManager::load() {
     m_config.maxPasswordAttempts = m_settings->value("maxPasswordAttempts", 5).toInt();
     m_config.lockoutDurationSecs = m_settings->value("lockoutDurationSecs", 30).toInt();
     m_config.warningDurationSeconds = m_settings->value("warningDurationSeconds", 20).toInt();
-    
+    m_config.targetEndTime = m_settings->value("targetEndTime").toDateTime();
+
     if (m_settings->contains("presetTemplates")) {
         m_config.presetTemplates = m_settings->value("presetTemplates").toStringList();
         QVariantList minutes = m_settings->value("presetMinutes").toList();
@@ -51,6 +52,7 @@ void ConfigManager::save() {
     m_settings->setValue("maxPasswordAttempts", m_config.maxPasswordAttempts);
     m_settings->setValue("lockoutDurationSecs", m_config.lockoutDurationSecs);
     m_settings->setValue("warningDurationSeconds", m_config.warningDurationSeconds);
+    m_settings->setValue("targetEndTime", m_config.targetEndTime);
     m_settings->setValue("presetTemplates", m_config.presetTemplates);
     
     QVariantList minutes;

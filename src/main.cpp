@@ -70,8 +70,26 @@ public:
             m_tray->setVisible(true);
             SystemHookManager::instance().startHook();
 
+            // 1. 检查是否存在未完成的持久化锁屏任务（用于处理重启逃逸）
+            QDateTime targetEnd = ConfigManager::instance().getConfig().targetEndTime;
+            QDateTime now = QDateTime::currentDateTime();
+
+            if (targetEnd.isValid() && now < targetEnd) {
+                // 判定为“断点续锁”
+                int remaining = now.secsTo(targetEnd);
+
+                // 自动开启加固、守护和遮罩
+                ProcessProtector::protect();
+                spawnGuard();
+                handleImmediateLock();
+
+                // 从断点恢复倒计时引擎
+                CountdownEngine::instance().resumeFromTime(remaining);
+                return;
+            }
+
+            // 2. 处理被强杀后的重启惩罚
             if (forceLock) {
-                // 如果是强杀后的重启惩罚：跳过配置，直接加固并锁定
                 ProcessProtector::protect();
                 spawnGuard();
                 handleImmediateLock();
@@ -180,22 +198,32 @@ public:
     }
 
     bool nativeEventFilter(const QByteArray &eventType, void *message, qintptr *result) override {
-        Q_UNUSED(result);
 #ifdef Q_OS_WIN
         if (eventType == "windows_generic_MSG") {
             MSG *msg = static_cast<MSG *>(message);
+
+            // 拦截关机/注销消息
+            if (msg->message == WM_QUERYENDSESSION) {
+                if (CountdownEngine::instance().state() != CountdownEngine::Idle) {
+                    // 如果正在锁定或倒计时，尝试阻止关机（虽然现代系统通常只是延迟关机并提示用户）
+                    // 并且通知用户开机后会继续锁定
+                    *result = FALSE;
+                    return true;
+                }
+            }
+
             if (msg->message == WM_HOTKEY) {
                 if (msg->wParam == 1) {
                     handleImmediateLock();
                     return true;
                 } else if (msg->wParam == 2) {
-                    // 紧急退出也进入受保护的退出流程
                     handleExit();
                     return true;
                 }
             }
         }
 #endif
+        Q_UNUSED(result);
         return false;
     }
 

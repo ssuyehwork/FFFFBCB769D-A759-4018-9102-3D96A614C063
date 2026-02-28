@@ -22,6 +22,7 @@ public:
     static CountdownEngine& instance();
 
     void start(int minutes);
+    void resumeFromTime(int seconds); // 从断点恢复
     void forceLock();
     void stop();
     void pause();

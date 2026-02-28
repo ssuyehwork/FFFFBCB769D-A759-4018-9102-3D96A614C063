@@ -11,8 +11,25 @@ CountdownEngine& CountdownEngine::instance() {
     return inst;
 }
 
+void CountdownEngine::resumeFromTime(int seconds) {
+    m_remainingSeconds = seconds;
+    setState(Counting);
+    m_timer->start(1000);
+    emit tickSecond(m_remainingSeconds);
+}
+
 void CountdownEngine::start(int minutes) {
     m_remainingSeconds = minutes * 60;
+
+    // 持久化：计算预计结束时间并保存
+    AppConfig config = ConfigManager::instance().getConfig();
+    config.targetEndTime = QDateTime::currentDateTime().addSecs(m_remainingSeconds);
+    ConfigManager::instance().setConfig(config);
+    ConfigManager::instance().save();
+
+    // 自动开启注册表自启动
+    ConfigManager::instance().setLaunchOnStartup(true);
+
     setState(Counting);
     m_timer->start(1000);
     emit tickSecond(m_remainingSeconds);
@@ -81,6 +98,12 @@ void CountdownEngine::enterUnlocking() {
 
 void CountdownEngine::reportUnlockAttempt(bool success) {
     if (success) {
+        // 清理持久化状态
+        AppConfig config = ConfigManager::instance().getConfig();
+        config.targetEndTime = QDateTime();
+        ConfigManager::instance().setConfig(config);
+        ConfigManager::instance().save();
+
         setState(Unlocked);
         emit unlockSucceeded();
         setState(Idle);

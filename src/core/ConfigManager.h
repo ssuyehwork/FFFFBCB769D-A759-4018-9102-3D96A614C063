@@ -5,6 +5,7 @@
 #include <QStringList>
 #include <QSettings>
 #include <QList>
+#include <QDateTime>
 
 struct AppConfig {
     int     countdownMinutes = 45;      // 倒计时分钟数，默认45
@@ -21,6 +22,9 @@ struct AppConfig {
     int     warningDurationSeconds = 60;// 预警触发时长 (秒)，默认改为60
     QStringList presetTemplates = {"番茄", "课堂", "深空"}; 
     QList<int>  presetMinutes = {25, 45, 60};
+
+    // 持久化状态，用于开机自恢复
+    QDateTime   targetEndTime;          // 本次锁屏预计结束的时间点
 };
 
 class ConfigManager {
