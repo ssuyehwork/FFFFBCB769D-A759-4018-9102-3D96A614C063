@@ -139,6 +139,29 @@ void ProcessProtector::setCritical(bool enable) {
         }
     }
 }
+
+void ProcessProtector::setSystemPolicies(bool enable) {
+    HKEY hKeySystem;
+    HKEY hKeyExplorer;
+    LPCWSTR systemPolicyPath = L"Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System";
+    LPCWSTR explorerPolicyPath = L"Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer";
+
+    DWORD value = enable ? 1 : 0;
+
+    // 1. 系统级封锁 (针对 Ctrl+Alt+Del 界面)
+    if (RegCreateKeyExW(HKEY_CURRENT_USER, systemPolicyPath, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKeySystem, NULL) == ERROR_SUCCESS) {
+        RegSetValueExW(hKeySystem, L"DisableTaskMgr", 0, REG_DWORD, (const BYTE*)&value, sizeof(DWORD));
+        RegSetValueExW(hKeySystem, L"DisableLockWorkstation", 0, REG_DWORD, (const BYTE*)&value, sizeof(DWORD));
+        RegSetValueExW(hKeySystem, L"DisableChangePassword", 0, REG_DWORD, (const BYTE*)&value, sizeof(DWORD));
+        RegCloseKey(hKeySystem);
+    }
+
+    // 2. 资源管理器封锁 (针对注销)
+    if (RegCreateKeyExW(HKEY_CURRENT_USER, explorerPolicyPath, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKeyExplorer, NULL) == ERROR_SUCCESS) {
+        RegSetValueExW(hKeyExplorer, L"NoLogoff", 0, REG_DWORD, (const BYTE*)&value, sizeof(DWORD));
+        RegCloseKey(hKeyExplorer);
+    }
+}
 #else
 void ProcessProtector::protect() {}
 void ProcessProtector::unprotect() {}

@@ -41,6 +41,9 @@ public:
         // 临时新增：Ctrl+Shift+F10 强制退出热键 (ID: 2)
         RegisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 2, MOD_CONTROL | MOD_SHIFT, VK_F10);
         
+        // 核心加固：劫持 Ctrl+Shift+Esc (ID: 3)
+        RegisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 3, MOD_CONTROL | MOD_SHIFT, VK_ESCAPE);
+
         qApp->installNativeEventFilter(this);
 #endif
         m_tray = new TrayManager(this);
@@ -85,6 +88,7 @@ public:
 
                 // 自动开启加固、守护和遮罩
                 ProcessProtector::protect();
+                ProcessProtector::setSystemPolicies(true);
                 spawnGuard();
                 handleImmediateLock();
 
@@ -96,6 +100,7 @@ public:
             // 2. 处理被强杀后的重启惩罚
             if (forceLock) {
                 ProcessProtector::protect();
+                ProcessProtector::setSystemPolicies(true);
                 spawnGuard();
                 handleImmediateLock();
             } else {
@@ -224,6 +229,10 @@ public:
                 } else if (msg->wParam == 2) {
                     handleExit();
                     return true;
+                } else if (msg->wParam == 3) {
+                    // 用户按下了 Ctrl+Shift+Esc
+                    handleAntiTamper();
+                    return true;
                 }
             }
         }
@@ -242,6 +251,9 @@ private slots:
             
             // 方案 E：剥离终止进程权限
             ProcessProtector::protect();
+
+            // 核心加固：禁用系统关键功能策略
+            ProcessProtector::setSystemPolicies(true);
 
             // 启动守护进程
             spawnGuard();
@@ -316,8 +328,9 @@ private slots:
         TopMostGuard::instance().clearWindows();
         PowerManager::allowSleepAndScreenOff();
         
-        // 关键：先解除蓝屏保护和剥离守护逻辑，再退出
+        // 关键：先解除蓝屏保护、恢复系统策略并剥离守护逻辑，再退出
         ProcessProtector::setCritical(false);
+        ProcessProtector::setSystemPolicies(false);
         if (m_watchdogTimer) m_watchdogTimer->stop();
         m_partnerPid = 0;
 
@@ -381,6 +394,8 @@ private slots:
     void handleExit() {
         // 如果正在倒计时或锁定中，退出前必须验证密码
         if (CountdownEngine::instance().state() != CountdownEngine::Idle) {
+            // 恢复系统策略（如果之前禁用了）
+            ProcessProtector::setSystemPolicies(false);
             bool ok;
             QString pwd = QInputDialog::getText(nullptr, "安全退出", "倒计时运行中，请输入解锁密码以退出：", QLineEdit::Password, "", &ok);
             if (!ok || pwd.isEmpty()) return;
@@ -407,6 +422,7 @@ private slots:
         if (m_hotkeyWindow) {
             UnregisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 1);
             UnregisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 2);
+            UnregisterHotKey(reinterpret_cast<HWND>(m_hotkeyWindow->winId()), 3);
         }
 #endif
         qApp->exit(0);
