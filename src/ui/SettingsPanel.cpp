@@ -3,6 +3,7 @@
 #include "../core/SessionLogger.h"
 #include <QVBoxLayout>
 #include <QFormLayout>
+#include <QLabel>
 #include <QPushButton>
 #include <QFileDialog>
 #include <QMessageBox>
