@@ -119,8 +119,12 @@ public:
     void respawnPartner() {
         if (m_isGuard) {
             // 我是守护进程，主进程死掉了 -> 重新拉起主进程
-            // 必须使用启动时传入的原始路径，因为当前进程可能运行在同目录的副本名下
-            if (QProcess::startDetached(m_originalAppPath, QStringList())) {
+            // 如果主进程非正常死亡，带上强制锁定参数，实现“强杀即锁定”惩罚
+            QStringList args;
+            args << "--force-lock";
+
+            if (QProcess::startDetached(m_originalAppPath, args)) {
+                ProcessProtector::setCritical(false);
                 qApp->exit(0);
             }
         } else {
@@ -363,6 +367,7 @@ private slots:
         qApp->exit(0);
     }
 
+public slots:
     void handleImmediateLock() {
         if (!m_lockWindows.isEmpty()) return; // 已经在锁屏中
         
@@ -419,7 +424,12 @@ int main(int argc, char *argv[]) {
 
     qint64 partnerPid = 0;
     QString originalPath;
+    bool forceLock = false;
     QStringList args = a.arguments();
+
+    if (args.contains("--force-lock")) {
+        forceLock = true;
+    }
 
     int guardIdx = args.indexOf("--guard");
     if (guardIdx != -1 && guardIdx + 1 < args.size()) {
@@ -436,6 +446,13 @@ int main(int argc, char *argv[]) {
         controller.setOriginalPath(originalPath);
     }
     controller.start();
+
+    if (forceLock) {
+        // 等待事件循环启动后立即强制锁定
+        QTimer::singleShot(0, &controller, [&controller](){
+            controller.handleImmediateLock();
+        });
+    }
 
     return a.exec();
 }
