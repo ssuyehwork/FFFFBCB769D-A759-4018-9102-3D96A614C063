@@ -18,6 +18,9 @@ private slots:
 
 private:
     QSpinBox *m_minutesSpin;
+    QLineEdit *m_passEdit;
+    QLineEdit *m_confirmPassEdit;
+    QCheckBox *m_rememberPass;
 };
 
 #endif // SETUPDIALOG_H
