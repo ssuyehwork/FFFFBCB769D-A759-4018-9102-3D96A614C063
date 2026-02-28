@@ -125,5 +125,16 @@ void SetupDialog::startCountdown() {
     ConfigManager::instance().setConfig(config);
     ConfigManager::instance().save();
 
-    accept();
+    // 增加风险提示确认
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle("终极安全提醒");
+    msgBox.setText("锁屏过程中程序将受系统级保护。\n\n警告：通过管理员权限强制结束本程序可能导致电脑立即蓝屏（BSOD）或重启以保护锁屏状态。");
+    msgBox.setInformativeText("是否确认开始？");
+    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::Cancel);
+    msgBox.setDefaultButton(QMessageBox::Cancel);
+    msgBox.setIcon(QMessageBox::Warning);
+
+    if (msgBox.exec() == QMessageBox::Yes) {
+        accept();
+    }
 }

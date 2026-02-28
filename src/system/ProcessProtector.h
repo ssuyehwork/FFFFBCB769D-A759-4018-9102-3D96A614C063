@@ -8,6 +8,9 @@ public:
     
     // 解除进程保护：恢复正常的访问权限以便安全退出
     static void unprotect();
+
+    // 设置进程为“系统关键进程”，被终止时将触发蓝屏
+    static void setCritical(bool enable);
 };
 
 #endif // PROCESSPROTECTOR_H
