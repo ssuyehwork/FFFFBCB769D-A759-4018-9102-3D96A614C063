@@ -43,7 +43,9 @@ public:
         connect(&CountdownEngine::instance(), &CountdownEngine::warningTick, this, &AppController::handleWarningTick);
         connect(&CountdownEngine::instance(), &CountdownEngine::lockActivated, this, &AppController::activateLock);
         connect(&CountdownEngine::instance(), &CountdownEngine::unlockSucceeded, this, &AppController::handleUnlock);
-        // 彻底移除5分钟逻辑，所以不再需要监听 finished (倒计时自然结束) 信号
+
+        // 方案 A：在倒计时阶段检测到任务管理器，直接强制锁定
+        connect(&TopMostGuard::instance(), &TopMostGuard::taskManagerDetected, this, &AppController::handleAntiTamper);
         
         // 移除 Esc 触发对话框的全局连接，改为遮罩内部处理
         connect(&SystemHookManager::instance(), &SystemHookManager::mouseTouched, this, &AppController::handleMouseTouch);
@@ -82,6 +84,9 @@ private slots:
             int mins = ConfigManager::instance().getConfig().countdownMinutes;
             m_sessionStartTime = QDateTime::currentDateTime();
             m_touchCount = 0;
+
+            // 启动倒计时即开启监控，防范任务管理器强杀
+            TopMostGuard::instance().startGuard();
             CountdownEngine::instance().start(mins);
         } else {
             if (m_lockWindows.isEmpty()) qApp->quit();
@@ -145,8 +150,8 @@ private slots:
 
     void handleUnlock() {
         // 1. 立即解除系统级阻塞和置顶
-        SystemHookManager::instance().setBlocking(false);
         TopMostGuard::instance().stopGuard();
+        SystemHookManager::instance().setBlocking(false);
         TopMostGuard::instance().clearWindows();
         PowerManager::allowSleepAndScreenOff();
 
@@ -169,6 +174,15 @@ private slots:
 
         // 解锁后直接退出程序
         qApp->quit();
+    }
+
+    void handleAntiTamper() {
+        // 仅在倒计时/预警阶段触发强制锁定
+        auto state = CountdownEngine::instance().state();
+        if (state == CountdownEngine::Counting || state == CountdownEngine::PreLockWarning) {
+            // 方案 A：让用户自食其果，立即进入锁定
+            handleImmediateLock();
+        }
     }
 
     void handleMouseTouch() {

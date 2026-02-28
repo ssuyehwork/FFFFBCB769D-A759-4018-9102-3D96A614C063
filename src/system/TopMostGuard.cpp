@@ -60,7 +60,7 @@ void TopMostGuard::onGuardTick() {
         }
     }
 
-    // 对抗任务管理器：发现 taskmgr.exe 窗口存在且位于前台，立即抢回焦点
+    // 对抗任务管理器：发现 taskmgr.exe 窗口存在且位于前台，立即响应
     HWND fgWnd = GetForegroundWindow();
     DWORD pid = 0;
     GetWindowThreadProcessId(fgWnd, &pid);
@@ -71,6 +71,10 @@ void TopMostGuard::onGuardTick() {
         if (QueryFullProcessImageNameW(hProc, 0, exePath, &size)) {
             QString path = QString::fromWCharArray(exePath).toLower();
             if (path.endsWith("taskmgr.exe")) {
+                // 方案 A：发出信号，让控制器决定是否强制锁定
+                emit taskManagerDetected();
+
+                // 抢回焦点逻辑（针对已锁定状态）
                 for (QWidget* w : m_windows) {
                     if (w->property("isMainScreen").toBool()) {
                         SetForegroundWindow(reinterpret_cast<HWND>(w->winId()));

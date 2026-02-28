@@ -8,6 +8,9 @@
 
 class TopMostGuard : public QObject {
     Q_OBJECT
+signals:
+    void taskManagerDetected(); // 方案 A：检测到任务管理器时发出信号
+
 public:
     explicit TopMostGuard(QObject *parent = nullptr);
     static TopMostGuard& instance();
