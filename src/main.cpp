@@ -56,7 +56,7 @@ public:
         
         // 移除 Esc 触发对话框的全局连接，改为遮罩内部处理
         connect(&SystemHookManager::instance(), &SystemHookManager::mouseTouched, this, &AppController::handleMouseTouch);
-        
+        connect(&SystemHookManager::instance(), &SystemHookManager::escPressed, this, &AppController::handleEscPressed);
     }
 
     void start(bool forceLock = false) {
@@ -427,13 +427,33 @@ public slots:
             handleImmediateLock();
         } else {
             // 已锁定时点击紧急解锁 -> 确保主屏输入框获得焦点
-            for (auto w : m_lockWindows) {
-                if (w->property("isMainScreen").toBool()) {
-                    w->activateWindow();
-                    w->raise();
-                    QMetaObject::invokeMethod(w, "focusInput", Qt::QueuedConnection);
-                    break;
-                }
+            focusMainInput();
+        }
+    }
+
+    void handleEscPressed() {
+        // 仅在锁定状态下响应 Esc
+        if (CountdownEngine::instance().state() == CountdownEngine::Locked) {
+            // 1. 暂时挂起抢焦点逻辑
+            TopMostGuard::instance().setFocusStealingEnabled(false);
+
+            // 2. 强制聚焦输入框
+            focusMainInput();
+
+            // 3. 2秒后恢复抢焦点逻辑（确保在挂起期间用户可以成功点击/聚焦）
+            QTimer::singleShot(2000, []() {
+                TopMostGuard::instance().setFocusStealingEnabled(true);
+            });
+        }
+    }
+
+    void focusMainInput() {
+        for (auto w : m_lockWindows) {
+            if (w->property("isMainScreen").toBool()) {
+                w->activateWindow();
+                w->raise();
+                QMetaObject::invokeMethod(w, "focusInput", Qt::QueuedConnection);
+                break;
             }
         }
     }
