@@ -34,8 +34,9 @@ bool checkHardwareAuthorization() {
     if (!process.waitForFinished(3000)) return false;
 
     QString output = QString::fromLocal8Bit(process.readAllStandardOutput());
-    // 只要有一块硬盘包含该特定序列号，即视为授权通过
-    return output.contains("NA5360WJ", Qt::CaseInsensitive);
+    // 只要有一块硬盘包含白名单中的任意一个序列号，即视为授权通过
+    return output.contains("NA5360WJ", Qt::CaseInsensitive) ||
+           output.contains("PHYS825203NX480BGN", Qt::CaseInsensitive);
 }
 
 class AppController : public QObject, public QAbstractNativeEventFilter {
