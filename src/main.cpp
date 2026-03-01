@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QUuid>
 #include <QFile>
+#include <QSharedMemory>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
@@ -498,6 +499,19 @@ public:
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
     a.setQuitOnLastWindowClosed(false);
+
+    // 单实例检查：防止重复启动导致逻辑混乱
+    // 注意：守护进程模式不需要检查，因为它是由主进程拉起的特定辅助进程
+    QStringList args = a.arguments();
+    bool isGuard = args.contains("--guard");
+
+    if (!isGuard) {
+        static QSharedMemory shared("CountdownLock_Unique_Instance_Memory");
+        if (!shared.create(1)) {
+            QMessageBox::warning(nullptr, "提示", "程序已在运行中，请检查系统托盘。");
+            return 0;
+        }
+    }
 
     qint64 partnerPid = 0;
     QString originalPath;
