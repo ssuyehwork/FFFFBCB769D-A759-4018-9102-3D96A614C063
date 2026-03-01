@@ -516,7 +516,6 @@ int main(int argc, char *argv[]) {
     qint64 partnerPid = 0;
     QString originalPath;
     bool forceLock = false;
-    QStringList args = a.arguments();
     
     if (args.contains("--force-lock")) {
         forceLock = true;
