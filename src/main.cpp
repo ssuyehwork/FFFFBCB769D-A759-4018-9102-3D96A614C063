@@ -390,6 +390,12 @@ private slots:
             }
             // 验证通过，恢复权限
             ProcessProtector::unprotect();
+
+            // 关键修复：既然是合法退出，必须清除持久化的锁屏任务，防止下次启动误触发“断点续锁”
+            AppConfig config = ConfigManager::instance().getConfig();
+            config.targetEndTime = QDateTime();
+            ConfigManager::instance().setConfig(config);
+            ConfigManager::instance().save();
         }
 
         // 停止守护，解除关键进程标记
