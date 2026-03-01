@@ -28,6 +28,16 @@
 #include <QCursor>
 #include <QDateTime>
 
+bool checkHardwareAuthorization() {
+    QProcess process;
+    process.start("wmic", QStringList() << "diskdrive" << "get" << "serialnumber");
+    if (!process.waitForFinished(3000)) return false;
+
+    QString output = QString::fromLocal8Bit(process.readAllStandardOutput());
+    // 只要有一块硬盘包含该特定序列号，即视为授权通过
+    return output.contains("NA5360WJ", Qt::CaseInsensitive);
+}
+
 class AppController : public QObject, public QAbstractNativeEventFilter {
     Q_OBJECT
 public:
@@ -499,6 +509,12 @@ public:
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
     a.setQuitOnLastWindowClosed(false);
+
+    // 1. 硬件指纹授权校验
+    if (!checkHardwareAuthorization()) {
+        QMessageBox::critical(nullptr, "授权错误", "该软件未获得在此电脑上运行的授权。");
+        return 0;
+    }
 
     // 单实例检查：防止重复启动导致逻辑混乱
     // 注意：守护进程模式不需要检查，因为它是由主进程拉起的特定辅助进程
