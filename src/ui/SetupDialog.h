@@ -17,10 +17,10 @@ private slots:
     void useTemplate();
 
 private:
-    QSpinBox *m_minutesSpin;
-    QLineEdit *m_passEdit;
-    QLineEdit *m_confirmPassEdit;
-    QCheckBox *m_rememberPass;
+    QSpinBox *m_minutesSpin = nullptr;
+    QLineEdit *m_passEdit = nullptr;
+    QLineEdit *m_confirmPassEdit = nullptr;
+    QCheckBox *m_rememberPass = nullptr;
 };
 
 #endif // SETUPDIALOG_H

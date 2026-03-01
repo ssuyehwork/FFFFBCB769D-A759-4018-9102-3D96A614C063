@@ -49,25 +49,30 @@ SetupDialog::SetupDialog(QWidget *parent) : QDialog(parent) {
 
     mainLayout->addSpacing(20);
 
-    // Password
-    mainLayout->addWidget(new QLabel("解锁密码：", this));
-    m_passEdit = new QLineEdit(this);
-    m_passEdit->setEchoMode(QLineEdit::Password);
-    if (config.rememberPassword && !config.passwordHash.isEmpty()) {
-        m_passEdit->setPlaceholderText("已保存 (留空保持不变)");
+    // Password - 仅在未设置密码时显示
+    if (config.passwordHash.isEmpty()) {
+        mainLayout->addWidget(new QLabel("解锁密码：", this));
+        m_passEdit = new QLineEdit(this);
+        m_passEdit->setEchoMode(QLineEdit::Password);
+        m_passEdit->setStyleSheet("padding: 5px;");
+        mainLayout->addWidget(m_passEdit);
+
+        mainLayout->addWidget(new QLabel("确认密码：", this));
+        m_confirmPassEdit = new QLineEdit(this);
+        m_confirmPassEdit->setEchoMode(QLineEdit::Password);
+        m_confirmPassEdit->setStyleSheet("padding: 5px;");
+        mainLayout->addWidget(m_confirmPassEdit);
+
+        m_rememberPass = new QCheckBox("记住密码", this);
+        m_rememberPass->setChecked(config.rememberPassword);
+        mainLayout->addWidget(m_rememberPass);
+    } else {
+        // 增加一个提示，告知密码已安全保存，如需修改请去设置
+        QLabel *hintLabel = new QLabel("密码已安全保存，如需修改请点击左侧设置图标", this);
+        hintLabel->setStyleSheet("color: #666; font-size: 11px; font-style: italic;");
+        hintLabel->setWordWrap(true);
+        mainLayout->addWidget(hintLabel);
     }
-    m_passEdit->setStyleSheet("padding: 5px;");
-    mainLayout->addWidget(m_passEdit);
-
-    mainLayout->addWidget(new QLabel("确认密码：", this));
-    m_confirmPassEdit = new QLineEdit(this);
-    m_confirmPassEdit->setEchoMode(QLineEdit::Password);
-    m_confirmPassEdit->setStyleSheet("padding: 5px;");
-    mainLayout->addWidget(m_confirmPassEdit);
-
-    m_rememberPass = new QCheckBox("记住密码", this);
-    m_rememberPass->setChecked(config.rememberPassword);
-    mainLayout->addWidget(m_rememberPass);
 
     mainLayout->addStretch();
 
@@ -103,24 +108,25 @@ void SetupDialog::showSettings() {
 void SetupDialog::startCountdown() {
     AppConfig config = ConfigManager::instance().getConfig();
     
-    QString p1 = m_passEdit->text();
-    QString p2 = m_confirmPassEdit->text();
+    // 仅在密码框存在时（初次设置）处理密码逻辑
+    if (m_passEdit) {
+        QString p1 = m_passEdit->text();
+        QString p2 = m_confirmPassEdit->text();
 
-    if (config.passwordHash.isEmpty() && p1.isEmpty()) {
-        QMessageBox::warning(this, "错误", "必须设置解锁密码！");
-        return;
-    }
+        if (p1.isEmpty()) {
+            QMessageBox::warning(this, "错误", "必须设置解锁密码！");
+            return;
+        }
 
-    if (!p1.isEmpty()) {
         if (p1 != p2) {
             QMessageBox::warning(this, "错误", "两次输入的密码不一致！");
             return;
         }
         config.passwordHash = ConfigManager::hashPassword(p1);
+        config.rememberPassword = m_rememberPass->isChecked();
     }
 
     config.countdownMinutes = m_minutesSpin->value();
-    config.rememberPassword = m_rememberPass->isChecked();
     
     ConfigManager::instance().setConfig(config);
     ConfigManager::instance().save();

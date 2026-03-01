@@ -9,6 +9,7 @@
 #include <QTableWidget>
 #include <QHeaderView>
 #include <QInputDialog>
+#include <QGroupBox>
 
 SettingsPanel::SettingsPanel(QWidget *parent) : QDialog(parent) {
     setWindowTitle("设置");
@@ -68,6 +69,28 @@ SettingsPanel::SettingsPanel(QWidget *parent) : QDialog(parent) {
 
     mainLayout->addLayout(formLayout);
 
+    // 修改密码区域
+    mainLayout->addSpacing(10);
+    QGroupBox *passGroup = new QGroupBox("修改解锁密码");
+    QFormLayout *passLayout = new QFormLayout(passGroup);
+
+    m_oldPassEdit = new QLineEdit();
+    m_oldPassEdit->setEchoMode(QLineEdit::Password);
+    m_oldPassEdit->setPlaceholderText("请输入当前旧密码");
+
+    m_newPassEdit = new QLineEdit();
+    m_newPassEdit->setEchoMode(QLineEdit::Password);
+    m_newPassEdit->setPlaceholderText("留空则不修改密码");
+
+    m_confirmNewPassEdit = new QLineEdit();
+    m_confirmNewPassEdit->setEchoMode(QLineEdit::Password);
+
+    passLayout->addRow("旧密码验证：", m_oldPassEdit);
+    passLayout->addRow("新密码：", m_newPassEdit);
+    passLayout->addRow("确认新密码：", m_confirmNewPassEdit);
+
+    mainLayout->addWidget(passGroup);
+
     QPushButton *btnLog = new QPushButton("查看锁屏日志");
     connect(btnLog, &QPushButton::clicked, this, &SettingsPanel::showLog);
     mainLayout->addWidget(btnLog);
@@ -96,6 +119,25 @@ void SettingsPanel::clearBackgroundImage() {
 
 void SettingsPanel::saveAndClose() {
     AppConfig config = ConfigManager::instance().getConfig();
+
+    // 1. 如果新密码框不为空，则处理密码修改
+    QString oldPass = m_oldPassEdit->text();
+    QString newPass = m_newPassEdit->text();
+    QString confirmPass = m_confirmNewPassEdit->text();
+
+    if (!newPass.isEmpty()) {
+        if (!ConfigManager::verifyPassword(oldPass, config.passwordHash)) {
+            QMessageBox::warning(this, "错误", "旧密码验证失败，无法修改密码！");
+            return;
+        }
+        if (newPass != confirmPass) {
+            QMessageBox::warning(this, "错误", "两次输入的新密码不一致！");
+            return;
+        }
+        config.passwordHash = ConfigManager::hashPassword(newPass);
+        QMessageBox::information(this, "成功", "密码修改成功，将在下次启动或锁屏时生效。");
+    }
+
     config.overlayOpacity = m_opacitySlider->value();
     config.backgroundImagePath = m_bgPathEdit->text();
     config.showLockIcon = m_showLockIcon->isChecked();

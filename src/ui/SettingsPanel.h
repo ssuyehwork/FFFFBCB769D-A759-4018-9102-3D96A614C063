@@ -29,6 +29,10 @@ private:
     QSpinBox *m_maxAttempts;
     QSpinBox *m_lockoutSecs;
     QSpinBox *m_warningSecs;
+
+    QLineEdit *m_oldPassEdit;
+    QLineEdit *m_newPassEdit;
+    QLineEdit *m_confirmNewPassEdit;
 };
 
 #endif // SETTINGSPANEL_H
